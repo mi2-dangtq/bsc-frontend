@@ -1,0 +1,1 @@
+export { WeightingManager } from './WeightingManager';

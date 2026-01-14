@@ -9,7 +9,12 @@ export interface KPI {
   csfId: string;
   name: string;
   unit?: string;
-  target?: number;
+  target?: number; // Alias for targetGoal (backward compatibility)
+  // Full target fields for scoring
+  targetMin?: number;       // Điểm sàn (0% điểm)
+  targetThreshold?: number; // Ngưỡng chấp nhận (dưới = Fail)
+  targetGoal?: number;      // Mục tiêu 100%
+  targetMax?: number;       // Điểm trần
   description?: string;
 }
 

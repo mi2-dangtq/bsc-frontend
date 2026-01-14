@@ -68,7 +68,7 @@ const navigationItems = [
     title: 'Báo cáo',
     icon: BarChart3,
     items: [
-      { title: 'Scorecard tổng hợp', url: '/reports/scorecard' },
+      { title: 'Scorecard tổng hợp', url: '/scorecard' },
       { title: 'Theo phương diện', url: '/reports/perspective' },
       { title: 'Theo phòng ban', url: '/reports/department' },
     ],

@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+
 import {
   Select,
   SelectContent,
@@ -13,17 +13,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Target, Plus, LayoutGrid, Table2, RefreshCw, Building2 } from 'lucide-react';
-import { CSFCard, type CSF } from './CSFCard';
+import { Target, Plus, RefreshCw, Building2 } from 'lucide-react';
 import { CSFEditorDialog } from './CSFEditorDialog';
 import { FishboneTable } from './FishboneTable';
 import { KPIEditorDialog } from './KPIEditorDialog';
 import type { KPI } from './KPIItem';
+import type { CSF } from './CSFCard';
 import { objectivesAPI, type Objective as APIObjective } from '@/lib/api';
 import { useFishboneAPI, getAllocationIdFromKpiId } from '@/hooks/useFishboneAPI';
 import { useDepartment } from '@/contexts';
 import { DepartmentSelector } from '@/components/shared/DepartmentSelector';
-import { DepartmentAssignDialog } from './DepartmentAssignDialog';
 
 export interface Objective {
   id: string;
@@ -41,7 +40,7 @@ const PERSPECTIVES = [
   { id: 4, name: 'Học hỏi & Phát triển', color: '#8b5cf6' },
 ];
 
-type ViewMode = 'card' | 'table';
+
 
 export function FishboneCanvas() {
   const api = useFishboneAPI();
@@ -50,7 +49,6 @@ export function FishboneCanvas() {
   const [objectives, setObjectives] = useState<Objective[]>([]);
   const [selectedObjectiveId, setSelectedObjectiveId] = useState<string | null>(null);
   const [csfs, setCsfs] = useState<CSF[]>([]);
-  const [viewMode, setViewMode] = useState<ViewMode>('card');
   const [loading, setLoading] = useState(true);
   
   // CSF Dialog state
@@ -63,9 +61,7 @@ export function FishboneCanvas() {
   const [editingKpiCsfId, setEditingKpiCsfId] = useState<string | null>(null);
   const [editingKpiCsfDbId, setEditingKpiCsfDbId] = useState<number | null>(null);
 
-  // Department Assign Dialog state
-  const [deptAssignDialogOpen, setDeptAssignDialogOpen] = useState(false);
-  const [assigningCsf, setAssigningCsf] = useState<CSF | null>(null);
+
 
   // Load objectives from API when department changes
   useEffect(() => {
@@ -217,6 +213,7 @@ export function FishboneCanvas() {
   };
 
   const handleTableEditKpi = (csf: CSF, kpi: KPI) => {
+    console.log('handleTableEditKpi called:', { csf, kpi });
     setEditingKpiCsfId(csf.id);
     setEditingKpiCsfDbId(csf.dbId || null);
     setEditingKpi(kpi);
@@ -234,7 +231,7 @@ export function FishboneCanvas() {
     }
   };
 
-  const handleSaveKpi = async (data: { kpiLibId: number; target: number }) => {
+  const handleSaveKpi = async (data: { kpiLibId: number; targets: { targetMin?: number; targetThreshold?: number; targetGoal: number; targetMax?: number } }) => {
     if (!editingKpiCsfDbId || !selectedObjective) return;
 
     if (editingKpi) {
@@ -246,7 +243,15 @@ export function FishboneCanvas() {
             ...csf,
             kpis: csf.kpis.map(k => 
               k.id === editingKpi.id 
-                ? { ...k, target: data.target, name: kpiLib?.name || k.name }
+                ? { 
+                    ...k, 
+                    target: data.targets.targetGoal,
+                    targetMin: data.targets.targetMin,
+                    targetThreshold: data.targets.targetThreshold,
+                    targetGoal: data.targets.targetGoal,
+                    targetMax: data.targets.targetMax,
+                    name: kpiLib?.name || k.name 
+                  }
                 : k
             ),
           };
@@ -258,7 +263,7 @@ export function FishboneCanvas() {
       const newKpi = await api.addKpiToCSF(
         editingKpiCsfDbId,
         data.kpiLibId,
-        data.target,
+        data.targets,
         selectedObjective.year
       );
 
@@ -278,10 +283,7 @@ export function FishboneCanvas() {
     setEditingKpiCsfDbId(null);
   };
 
-  // Update CSF locally (for CSFCard)
-  const handleUpdateCsf = (updatedCsf: CSF) => {
-    setCsfs(csfs.map(c => c.id === updatedCsf.id ? updatedCsf : c));
-  };
+
 
   if (loading) {
     return (
@@ -364,22 +366,6 @@ export function FishboneCanvas() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <ToggleGroup
-                  type="single"
-                  value={viewMode}
-                  onValueChange={(v: string) => v && setViewMode(v as ViewMode)}
-                  className="bg-muted p-1 rounded-lg"
-                >
-                  <ToggleGroupItem value="card" aria-label="Card view" className="h-8 px-3">
-                    <LayoutGrid className="h-4 w-4 mr-1" />
-                    Card
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="table" aria-label="Table view" className="h-8 px-3">
-                    <Table2 className="h-4 w-4 mr-1" />
-                    Table
-                  </ToggleGroupItem>
-                </ToggleGroup>
-                
                 <DepartmentSelector showLabel={false} />
                 
                 <Button onClick={handleAddCsf} size="sm">
@@ -390,43 +376,15 @@ export function FishboneCanvas() {
             </div>
           </CardHeader>
           <CardContent>
-            {viewMode === 'card' ? (
-              csfs.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>Chưa có CSF nào. Bấm &quot;Thêm CSF&quot; để bắt đầu phân rã mục tiêu.</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {csfs.map((csf, index) => (
-                    <CSFCard
-                      key={csf.id}
-                      csf={csf}
-                      index={index + 1}
-                      objectiveColor={selectedObjective.color}
-                      onEdit={() => handleEditCsf(csf)}
-                      onDelete={() => handleDeleteCsf(csf.id)}
-                      onUpdate={handleUpdateCsf}
-                      onAddKpi={handleAddKpi}
-                      onDeleteKpi={(csfId, kpiId) => handleTableDeleteKpi(csf, kpiId)}
-                      onAssignDepartments={(csf) => {
-                        setAssigningCsf(csf);
-                        setDeptAssignDialogOpen(true);
-                      }}
-                    />
-                  ))}
-                </div>
-              )
-            ) : (
-              <FishboneTable
-                csfs={csfs}
-                objectiveColor={selectedObjective.color}
-                onEditCsf={handleEditCsf}
-                onDeleteCsf={handleDeleteCsf}
-                onAddKpi={handleTableAddKpi}
-                onEditKpi={handleTableEditKpi}
-                onDeleteKpi={handleTableDeleteKpi}
-              />
-            )}
+            <FishboneTable
+              csfs={csfs}
+              objectiveColor={selectedObjective.color}
+              onEditCsf={handleEditCsf}
+              onDeleteCsf={handleDeleteCsf}
+              onAddKpi={handleTableAddKpi}
+              onEditKpi={handleTableEditKpi}
+              onDeleteKpi={handleTableDeleteKpi}
+            />
           </CardContent>
         </Card>
       )}
@@ -448,20 +406,6 @@ export function FishboneCanvas() {
         mode={editingKpi ? 'edit' : 'create'}
       />
 
-      {assigningCsf && assigningCsf.dbId && (
-        <DepartmentAssignDialog
-          open={deptAssignDialogOpen}
-          onOpenChange={setDeptAssignDialogOpen}
-          csfId={assigningCsf.dbId}
-          csfContent={assigningCsf.name}
-          currentDepartments={assigningCsf.departments || []}
-          onSave={(departments) => {
-            setCsfs(csfs.map(c => 
-              c.id === assigningCsf.id ? { ...c, departments } : c
-            ));
-          }}
-        />
-      )}
     </div>
   );
 }

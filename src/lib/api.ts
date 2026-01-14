@@ -281,3 +281,59 @@ export const kpiMeasurementAPI = {
       body: JSON.stringify(data),
     }),
 };
+
+// ===== Scorecard Summary =====
+export interface ScorecardKPI {
+  id: number;
+  allocationId: number;
+  name: string;
+  definition: string | null;
+  unit: string | null;
+  trend: 'POSITIVE' | 'NEGATIVE';
+  frequency: string;
+  targetMin: number | null;
+  targetThreshold: number | null;
+  targetGoal: number;
+  targetMax: number | null;
+  weight: number;
+  dataSourceDepartment: string | null;
+}
+
+export interface ScorecardObjective {
+  id: number;
+  code: string | null;
+  name: string;
+  weight: number | null;
+  kpis: ScorecardKPI[];
+}
+
+export interface ScorecardPerspective {
+  id: number;
+  name: string;
+  nameEn: string;
+  weight: number | null;
+  color: string | null;
+  objectives: ScorecardObjective[];
+}
+
+export interface ScorecardSummary {
+  departmentId: string | null;
+  departmentName: string | null;
+  year: number;
+  perspectives: ScorecardPerspective[];
+  totals: {
+    objectiveCount: number;
+    kpiCount: number;
+  };
+}
+
+export const scorecardAPI = {
+  getSummary: (filters?: { departmentId?: string; year?: number }) => {
+    const params = new URLSearchParams();
+    if (filters?.departmentId) params.set('departmentId', filters.departmentId);
+    if (filters?.year) params.set('year', filters.year.toString());
+    const query = params.toString() ? `?${params}` : '';
+    return fetchAPI<ScorecardSummary>(`/scorecard/summary${query}`);
+  },
+};
+

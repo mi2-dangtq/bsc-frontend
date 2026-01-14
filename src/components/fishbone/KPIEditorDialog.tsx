@@ -19,6 +19,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form';
 import {
   Select,
@@ -30,22 +31,37 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Info } from 'lucide-react';
 import type { KPI } from './KPIItem';
 import type { KPILibrary } from '@/lib/api';
 
 const kpiFormSchema = z.object({
   kpiLibId: z.number().min(1, 'Vui lòng chọn KPI từ thư viện'),
-  target: z.number().min(0, 'Mục tiêu phải >= 0'),
+  targetMin: z.number().optional(),
+  targetThreshold: z.number().optional(),
+  targetGoal: z.number().min(0, 'Mục tiêu phải >= 0'),
+  targetMax: z.number().optional(),
 });
 
 type KPIFormValues = z.infer<typeof kpiFormSchema>;
+
+export interface KPISaveData {
+  kpiLibId: number;
+  targets: {
+    targetMin?: number;
+    targetThreshold?: number;
+    targetGoal: number;
+    targetMax?: number;
+  };
+}
 
 interface KPIEditorDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   kpi: KPI | null;
   kpiLibrary: KPILibrary[];
-  onSave: (data: { kpiLibId: number; target: number }) => void;
+  onSave: (data: KPISaveData) => void;
   mode: 'create' | 'edit';
 }
 
@@ -63,7 +79,10 @@ export function KPIEditorDialog({
     resolver: zodResolver(kpiFormSchema),
     defaultValues: {
       kpiLibId: 0,
-      target: 0,
+      targetMin: undefined,
+      targetThreshold: undefined,
+      targetGoal: 0,
+      targetMax: undefined,
     },
   });
 
@@ -74,13 +93,19 @@ export function KPIEditorDialog({
       const libId = kpi.kpiLibId || 0;
       form.reset({
         kpiLibId: libId,
-        target: kpi.target || 0,
+        targetMin: kpi.targetMin,
+        targetThreshold: kpi.targetThreshold,
+        targetGoal: kpi.targetGoal || kpi.target || 0,
+        targetMax: kpi.targetMax,
       });
       setSelectedKpi(kpiLibrary.find(k => k.id === libId) || null);
     } else if (!kpi && open) {
       form.reset({
         kpiLibId: 0,
-        target: 0,
+        targetMin: undefined,
+        targetThreshold: undefined,
+        targetGoal: 0,
+        targetMax: undefined,
       });
       setSelectedKpi(null);
     }
@@ -94,19 +119,29 @@ export function KPIEditorDialog({
   };
 
   const onSubmit = (data: KPIFormValues) => {
-    onSave(data);
+    onSave({
+      kpiLibId: data.kpiLibId,
+      targets: {
+        targetMin: data.targetMin,
+        targetThreshold: data.targetThreshold,
+        targetGoal: data.targetGoal,
+        targetMax: data.targetMax,
+      },
+    });
     onOpenChange(false);
   };
 
+  const isPositive = selectedKpi?.trend === 'POSITIVE';
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
           <DialogTitle>
             {mode === 'create' ? 'Thêm KPI từ Thư viện' : 'Chỉnh sửa KPI'}
           </DialogTitle>
           <DialogDescription>
-            Chọn KPI từ thư viện có sẵn và đặt mục tiêu
+            Chọn KPI từ thư viện và thiết lập ngưỡng đo lường
           </DialogDescription>
         </DialogHeader>
 
@@ -176,32 +211,156 @@ export function KPIEditorDialog({
               </div>
             )}
 
-            <FormField
-              control={form.control}
-              name="target"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Mục tiêu (Target Goal) *</FormLabel>
-                  <FormControl>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        placeholder="Nhập giá trị mục tiêu"
-                        {...field}
-                        value={field.value || ''}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                      />
-                      {selectedKpi?.unit && (
-                        <span className="text-sm text-muted-foreground min-w-[60px]">
-                          {selectedKpi.unit}
-                        </span>
-                      )}
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Target fields - only show when KPI is selected */}
+            {selectedKpi && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Info className="h-4 w-4 text-muted-foreground" />
+                  Thiết lập ngưỡng đo lường
+                </div>
+
+                <Alert>
+                  <AlertDescription className="text-xs">
+                    {isPositive ? (
+                      <>
+                        <strong>KPI Thuận:</strong> Min &lt; Ngưỡng &lt; Mục tiêu &lt; Max
+                        <br />
+                        Ví dụ: Doanh thu Min=50, Ngưỡng=70, Mục tiêu=100, Max=120
+                      </>
+                    ) : (
+                      <>
+                        <strong>KPI Ngược:</strong> Min &gt; Ngưỡng &gt; Mục tiêu &gt; Max
+                        <br />
+                        Ví dụ: Tỷ lệ lỗi Min=10%, Ngưỡng=8%, Mục tiêu=5%, Max=2%
+                      </>
+                    )}
+                  </AlertDescription>
+                </Alert>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Min */}
+                  <FormField
+                    control={form.control}
+                    name="targetMin"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Min (Điểm sàn)</FormLabel>
+                        <FormControl>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              placeholder={isPositive ? "VD: 50" : "VD: 10"}
+                              value={field.value ?? ''}
+                              onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                              className="h-9"
+                            />
+                            {selectedKpi?.unit && (
+                              <span className="text-xs text-muted-foreground min-w-[40px]">
+                                {selectedKpi.unit}
+                              </span>
+                            )}
+                          </div>
+                        </FormControl>
+                        <FormDescription className="text-xs">
+                          {isPositive ? '0% điểm' : 'Tệ nhất'}
+                        </FormDescription>
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Threshold */}
+                  <FormField
+                    control={form.control}
+                    name="targetThreshold"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Ngưỡng chấp nhận</FormLabel>
+                        <FormControl>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              placeholder={isPositive ? "VD: 70" : "VD: 8"}
+                              value={field.value ?? ''}
+                              onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                              className="h-9"
+                            />
+                            {selectedKpi?.unit && (
+                              <span className="text-xs text-muted-foreground min-w-[40px]">
+                                {selectedKpi.unit}
+                              </span>
+                            )}
+                          </div>
+                        </FormControl>
+                        <FormDescription className="text-xs">
+                          Dưới = Fail (0đ)
+                        </FormDescription>
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Target Goal */}
+                  <FormField
+                    control={form.control}
+                    name="targetGoal"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Mục tiêu (100%) *</FormLabel>
+                        <FormControl>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              placeholder={isPositive ? "VD: 100" : "VD: 5"}
+                              value={field.value || ''}
+                              onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                              className="h-9"
+                            />
+                            {selectedKpi?.unit && (
+                              <span className="text-xs text-muted-foreground min-w-[40px]">
+                                {selectedKpi.unit}
+                              </span>
+                            )}
+                          </div>
+                        </FormControl>
+                        <FormDescription className="text-xs">
+                          100% điểm
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Max */}
+                  <FormField
+                    control={form.control}
+                    name="targetMax"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Max (Điểm trần)</FormLabel>
+                        <FormControl>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              placeholder={isPositive ? "VD: 120" : "VD: 2"}
+                              value={field.value ?? ''}
+                              onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                              className="h-9"
+                            />
+                            {selectedKpi?.unit && (
+                              <span className="text-xs text-muted-foreground min-w-[40px]">
+                                {selectedKpi.unit}
+                              </span>
+                            )}
+                          </div>
+                        </FormControl>
+                        <FormDescription className="text-xs">
+                          {isPositive ? 'Vượt = tính bằng Max' : 'Tốt nhất'}
+                        </FormDescription>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+            )}
 
             <DialogFooter>
               <Button

@@ -10,7 +10,12 @@ export interface LocalKPI {
   kpiLibId?: number; // KpiLibrary ID
   name: string;
   unit?: string;
-  target?: number;
+  target?: number; // Alias for targetGoal (backward compatibility)
+  // Full target fields for scoring
+  targetMin?: number;
+  targetThreshold?: number;
+  targetGoal?: number;
+  targetMax?: number;
   description?: string;
 }
 
@@ -40,7 +45,17 @@ export interface UseFishboneAPI {
   updateCSF: (dbId: number, content: string) => Promise<boolean>;
   deleteCSF: (dbId: number) => Promise<boolean>;
   // KPI operations
-  addKpiToCSF: (csfDbId: number, kpiLibId: number, target: number, year: number) => Promise<LocalKPI | null>;
+  addKpiToCSF: (
+    csfDbId: number,
+    kpiLibId: number,
+    targets: {
+      targetMin?: number;
+      targetThreshold?: number;
+      targetGoal: number;
+      targetMax?: number;
+    },
+    year: number
+  ) => Promise<LocalKPI | null>;
   removeKpiFromCSF: (allocationId: number) => Promise<boolean>;
 }
 
@@ -82,6 +97,10 @@ export function useFishboneAPI(): UseFishboneAPI {
           name: alloc.kpiLib?.name || 'KPI',
           unit: alloc.kpiLib?.unit || undefined,
           target: alloc.targetGoal ? Number(alloc.targetGoal) : undefined,
+          targetMin: alloc.targetMin ? Number(alloc.targetMin) : undefined,
+          targetThreshold: alloc.targetThreshold ? Number(alloc.targetThreshold) : undefined,
+          targetGoal: alloc.targetGoal ? Number(alloc.targetGoal) : undefined,
+          targetMax: alloc.targetMax ? Number(alloc.targetMax) : undefined,
           description: alloc.kpiLib?.definition || undefined,
         })),
         departments: (csf.departments || []).map((d: any) => ({
@@ -161,7 +180,12 @@ export function useFishboneAPI(): UseFishboneAPI {
   const addKpiToCSF = useCallback(async (
     csfDbId: number,
     kpiLibId: number,
-    target: number,
+    targets: {
+      targetMin?: number;
+      targetThreshold?: number;
+      targetGoal: number;
+      targetMax?: number;
+    },
     year: number
   ): Promise<LocalKPI | null> => {
     try {
@@ -169,7 +193,10 @@ export function useFishboneAPI(): UseFishboneAPI {
         csfId: csfDbId,
         kpiLibId,
         weight: 100, // Default weight
-        targetGoal: target,
+        targetMin: targets.targetMin,
+        targetThreshold: targets.targetThreshold,
+        targetGoal: targets.targetGoal,
+        targetMax: targets.targetMax,
         year,
       });
 
@@ -182,6 +209,10 @@ export function useFishboneAPI(): UseFishboneAPI {
         name: kpiLib?.name || 'KPI',
         unit: kpiLib?.unit || undefined,
         target: Number(allocation.targetGoal),
+        targetMin: allocation.targetMin ? Number(allocation.targetMin) : undefined,
+        targetThreshold: allocation.targetThreshold ? Number(allocation.targetThreshold) : undefined,
+        targetGoal: Number(allocation.targetGoal),
+        targetMax: allocation.targetMax ? Number(allocation.targetMax) : undefined,
         description: kpiLib?.definition || undefined,
       };
 

@@ -33,6 +33,7 @@ export interface UseStrategyMapAPI {
   fetchObjectives: (year: number, departmentId?: string) => Promise<{ nodes: Node[]; edges: Edge[] }>;
   createObjective: (data: CreateObjectiveDTO, laneId: string, positionX: number) => Promise<Node | null>;
   updateObjective: (id: number, data: Partial<CreateObjectiveDTO>) => Promise<boolean>;
+  updatePosition: (id: number, positionX: number, positionY: number) => Promise<boolean>;
   deleteObjective: (id: number) => Promise<boolean>;
   createLink: (fromId: number, toId: number) => Promise<boolean>;
   deleteLink: (linkId: number) => Promise<boolean>;
@@ -63,7 +64,7 @@ export function useStrategyMapAPI(): UseStrategyMapAPI {
           type: 'objective',
           position: {
             x: obj.positionX ?? 180,
-            y: obj.positionY ?? 27,
+            y: obj.positionY ?? 35,
           },
           data: {
             label: obj.name,
@@ -83,16 +84,33 @@ export function useStrategyMapAPI(): UseStrategyMapAPI {
         };
       });
 
-      // Convert links to ReactFlow edges
-      const edges: Edge[] = links.map((link) => ({
-        id: `edge-${link.id}`,
-        source: `obj-${link.fromObjectiveId}`,
-        target: `obj-${link.toObjectiveId}`,
-        type: 'smoothstep',
-        animated: true,
-        style: { stroke: '#64748b', strokeWidth: 2 },
-        data: { dbId: link.id },
-      }));
+      // Convert links to ReactFlow edges with improved styling
+      const edges: Edge[] = links.map((link) => {
+        // Find source objective to get its perspective color
+        const sourceObj = objectives.find((o: Objective) => o.id === link.fromObjectiveId);
+        const sourcePerspective = PERSPECTIVES.find(p => p.id === sourceObj?.perspectiveId);
+        const edgeColor = sourcePerspective?.color || '#64748b';
+        
+        return {
+          id: `edge-${link.id}`,
+          source: `obj-${link.fromObjectiveId}`,
+          target: `obj-${link.toObjectiveId}`,
+          type: 'smoothstep',
+          animated: true,
+          style: { 
+            stroke: edgeColor, 
+            strokeWidth: 2.5,
+            strokeOpacity: 0.7,
+          },
+          markerEnd: {
+            type: 'arrowclosed' as const,
+            color: edgeColor,
+            width: 12,
+            height: 12,
+          },
+          data: { dbId: link.id },
+        };
+      });
 
       return { nodes, edges };
     } catch (err) {
@@ -115,7 +133,7 @@ export function useStrategyMapAPI(): UseStrategyMapAPI {
       const result = await objectivesAPI.create({
         ...data,
         positionX,
-        positionY: 27,
+        positionY: 35,
       });
 
       const perspective = PERSPECTIVES.find(p => p.id === result.perspectiveId);
@@ -123,7 +141,7 @@ export function useStrategyMapAPI(): UseStrategyMapAPI {
       const newNode: Node = {
         id: `obj-${result.id}`,
         type: 'objective',
-        position: { x: positionX, y: 27 },
+        position: { x: positionX, y: 35 },
         data: {
           label: result.name,
           code: result.code,
@@ -205,12 +223,28 @@ export function useStrategyMapAPI(): UseStrategyMapAPI {
     }
   }, []);
 
+  // Update position (silent - no toast, called frequently during drag)
+  const updatePosition = useCallback(async (
+    id: number,
+    positionX: number,
+    positionY: number
+  ): Promise<boolean> => {
+    try {
+      await objectivesAPI.update(id, { positionX, positionY });
+      return true;
+    } catch (err) {
+      console.error('Error updating position:', err);
+      return false;
+    }
+  }, []);
+
   return {
     loading,
     error,
     fetchObjectives,
     createObjective,
     updateObjective,
+    updatePosition,
     deleteObjective,
     createLink,
     deleteLink,

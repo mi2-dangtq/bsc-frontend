@@ -33,7 +33,7 @@ const LANE_WIDTH = 1200;
 const LABEL_WIDTH = 180;
 
 // Tạo lane nodes (parent nodes)
-function createLaneNodes(perspectives: { id: string; sortOrder: number; name: string; nameEn: string; color: string }[]): Node[] {
+function createLaneNodes(perspectives: { id: string; sortOrder: number; name: string; nameEn: string; color: string; weight?: number }[]): Node[] {
   return perspectives.map((p, index) => ({
     id: p.id,
     type: 'lane',
@@ -43,6 +43,7 @@ function createLaneNodes(perspectives: { id: string; sortOrder: number; name: st
       labelEn: p.nameEn,
       color: p.color,
       sortOrder: p.sortOrder,
+      weight: p.weight ?? 25,
     },
     style: { width: LANE_WIDTH, height: LANE_HEIGHT },
     draggable: false,
@@ -110,6 +111,7 @@ export function StrategyMapCanvas({ year }: StrategyMapCanvasProps) {
       name: p.name,
       nameEn: p.nameEn,
       color: p.color,
+      weight: p.weight,
     })), [perspectives]
   );
   
@@ -143,25 +145,36 @@ export function StrategyMapCanvas({ year }: StrategyMapCanvasProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [year, selectedDepartment?.id]);
 
-  // Custom onNodesChange: lock Y position for objectives
+  // Custom onNodesChange: allow free Y movement but constrain within lane
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
+      const PADDING = 10; // Padding from lane edges
+      const NODE_H = 90; // Compact node height
+      const NODE_W = 180; // Compact node width
+      const minY = PADDING;
+      const maxY = LANE_HEIGHT - NODE_H - PADDING;
+      
       const constrainedChanges = changes.map((change) => {
         if (change.type === 'position' && change.position && change.id.startsWith('obj-')) {
-          const node = nodes.find((n) => n.id === change.id);
-          if (node) {
-            return {
-              ...change,
-              position: { x: change.position.x, y: node.position.y },
-            };
-          }
+          // Constrain X within visible area (after label)
+          const minX = LABEL_WIDTH + PADDING;
+          const maxX = LANE_WIDTH - NODE_W - PADDING;
+          
+          // Clamp position within bounds
+          const clampedX = Math.max(minX, Math.min(maxX, change.position.x));
+          const clampedY = Math.max(minY, Math.min(maxY, change.position.y));
+          
+          return {
+            ...change,
+            position: { x: clampedX, y: clampedY },
+          };
         }
         return change;
       });
 
       setNodes((nds) => applyNodeChanges(constrainedChanges, nds));
     },
-    [nodes, setNodes]
+    [setNodes]
   );
 
   // Dialog state
@@ -284,6 +297,23 @@ export function StrategyMapCanvas({ year }: StrategyMapCanvasProps) {
       setDialogOpen(true);
     },
     [lanePerspectives]
+  );
+
+  // Handle node drag stop - save position to database
+  const onNodeDragStop = useCallback(
+    async (event: React.MouseEvent, node: Node) => {
+      if (node.type !== 'objective') return;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const nodeData = node.data as any;
+      const dbId = nodeData.dbId || getDbIdFromNodeId(node.id);
+      
+      if (dbId) {
+        // Save position silently to database
+        await api.updatePosition(dbId, Math.round(node.position.x), Math.round(node.position.y));
+      }
+    },
+    [api]
   );
 
   // Save objective (create or update) via API
@@ -437,8 +467,8 @@ export function StrategyMapCanvas({ year }: StrategyMapCanvasProps) {
 
   return (
     <>
-      {/* Stats Bar - Modern design matching CSF page */}
-      <div className="grid grid-cols-5 gap-3 mb-4">
+      {/* Stats Bar - 4 stat cards */}
+      <div className="grid grid-cols-4 gap-3 mb-3">
         <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border">
           <div className="p-2 rounded-lg bg-slate-200 dark:bg-slate-700">
             <Calendar className="h-4 w-4 text-slate-600 dark:text-slate-300" />
@@ -493,22 +523,50 @@ export function StrategyMapCanvas({ year }: StrategyMapCanvasProps) {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Action Toolbar - Consistent styling */}
+      <div className="flex items-center justify-between mb-4">
+        {/* Left: Theme management */}
+        <Button 
+          size="sm" 
+          variant="outline" 
+          onClick={() => setThemeDialogOpen(true)} 
+          className="h-8 text-xs border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+        >
+          <Layers className="h-3.5 w-3.5 mr-1.5" />
+          Nhóm chiến lược
+        </Button>
         
-        {/* Action buttons */}
-        <div className="flex items-center gap-2 justify-end">
-          <Button size="sm" variant="outline" onClick={() => setThemeDialogOpen(true)} className="h-9">
-            <Layers className="h-4 w-4 mr-1.5" />
-            Nhóm CL
+        {/* Right: Action buttons group */}
+        <div className="flex items-center gap-1 p-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+          <Button 
+            size="sm" 
+            variant="ghost" 
+            onClick={handleSavePositions} 
+            className="h-7 px-3 text-xs hover:bg-white dark:hover:bg-slate-700"
+          >
+            <Save className="h-3.5 w-3.5 mr-1.5" />
+            Lưu vị trí
           </Button>
-          <Button size="sm" variant="default" onClick={handleSavePositions} className="h-9 shadow-sm">
-            <Save className="h-4 w-4 mr-1.5" />
-            Lưu
+          <div className="w-px h-4 bg-slate-300 dark:bg-slate-600" />
+          <Button 
+            size="sm" 
+            variant="ghost" 
+            onClick={handleRefresh} 
+            className="h-7 w-7 p-0 hover:bg-white dark:hover:bg-slate-700"
+            title="Làm mới"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
           </Button>
-          <Button size="sm" variant="outline" onClick={handleRefresh} className="h-9">
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-          <Button size="sm" variant="ghost" className="h-9 text-destructive hover:text-destructive" onClick={handleReset}>
-            <RotateCcw className="h-4 w-4" />
+          <Button 
+            size="sm" 
+            variant="ghost" 
+            className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-red-50 dark:hover:bg-red-950/30" 
+            onClick={handleReset}
+            title="Xóa tất cả"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
@@ -523,6 +581,7 @@ export function StrategyMapCanvas({ year }: StrategyMapCanvasProps) {
           onEdgesDelete={onEdgesDelete}
           onConnect={onConnect}
           onNodeDoubleClick={onNodeDoubleClick}
+          onNodeDragStop={onNodeDragStop}
           nodeTypes={nodeTypes}
           defaultViewport={{ x: 0, y: 0, zoom: 1 }}
           minZoom={1}

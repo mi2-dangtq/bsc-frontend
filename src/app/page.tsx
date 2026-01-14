@@ -18,6 +18,11 @@ import {
   Clock,
   Loader2,
 } from 'lucide-react';
+import {
+  PerspectiveRadarChart,
+  PerspectiveBarChart,
+  OverallScoreGauge,
+} from '@/components/charts';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -36,7 +41,7 @@ interface PerspectiveStat {
 const recentActivities = [
   {
     action: 'Cập nhật KPI',
-    item: 'Doanh thu Q4',
+    item: 'Doanh thu Q1',
     user: 'Nguyễn Văn A',
     time: '5 phút trước',
     status: 'success',
@@ -50,7 +55,7 @@ const recentActivities = [
   },
   {
     action: 'Nhập kết quả',
-    item: 'CSAT tháng 12',
+    item: 'CSAT tháng 1',
     user: 'Lê Văn C',
     time: '2 giờ trước',
     status: 'warning',
@@ -107,6 +112,14 @@ export default function DashboardPage() {
   const totalObjectives = stats.reduce((sum, p) => sum + p.objectiveCount, 0);
   const totalKpis = stats.reduce((sum, p) => sum + p.kpiCount, 0);
 
+  // Prepare chart data
+  const chartData = stats.map((p) => ({
+    name: p.name,
+    nameEn: p.nameEn,
+    score: p.score,
+    color: p.color || '#888',
+  }));
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -127,107 +140,118 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Overall Score Card */}
-      <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Điểm tổng hợp BSC</p>
-              <p className={`text-5xl font-bold ${getScoreColor(totalScore)}`}>
-                {totalScore > 0 ? `${totalScore}%` : 'N/A'}
-              </p>
+      {/* Top Section: Score Overview + Radar Chart */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Overall Score Card with Gauge */}
+        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Điểm tổng hợp BSC</CardTitle>
+            <CardDescription>Trung bình 4 phương diện</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center justify-center">
+            <OverallScoreGauge score={totalScore} label="Điểm BSC" />
+            <div className="mt-4 flex items-center gap-4">
               {totalScore > 0 && (
-                <Badge {...getScoreBadge(totalScore)} className="mt-2">
+                <Badge {...getScoreBadge(totalScore)} className="text-sm px-3 py-1">
                   {getScoreBadge(totalScore).label}
                 </Badge>
               )}
-            </div>
-            <div className="text-right">
-              <div className="flex items-center gap-2 text-green-600">
-                <TrendingUp className="h-5 w-5" />
-                <span className="text-lg font-semibold">+5%</span>
+              <div className="flex items-center gap-1 text-green-600">
+                <TrendingUp className="h-4 w-4" />
+                <span className="text-sm font-medium">+5% so với kỳ trước</span>
               </div>
-              <p className="text-sm text-muted-foreground">so với kỳ trước</p>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Perspective Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((perspective) => (
-          <Card key={perspective.id} className="relative overflow-hidden">
-            <div
-              className="absolute left-0 top-0 bottom-0 w-1"
-              style={{ backgroundColor: perspective.color || '#888' }}
-            />
-            <CardHeader className="pb-2">
-              <CardDescription className="flex items-center justify-between">
-                <span>{perspective.nameEn}</span>
-                {perspective.trend === 'up' ? (
-                  <TrendingUp className="h-4 w-4 text-green-500" />
-                ) : (
-                  <TrendingDown className="h-4 w-4 text-red-500" />
-                )}
-              </CardDescription>
-              <CardTitle className="text-lg">{perspective.name}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-baseline gap-2">
-                <span className={`text-3xl font-bold ${getScoreColor(perspective.score)}`}>
-                  {perspective.score > 0 ? `${perspective.score}%` : 'N/A'}
-                </span>
-              </div>
-              <div className="mt-2 flex gap-3 text-xs text-muted-foreground">
-                <span>{perspective.objectiveCount} mục tiêu</span>
-                <span>•</span>
-                <span>{perspective.kpiCount} KPIs</span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        {/* Radar Chart */}
+        <PerspectiveRadarChart data={chartData} />
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Mục tiêu</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalObjectives}</div>
-            <p className="text-xs text-muted-foreground">
-              Đang active trong hệ thống
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">KPIs đang theo dõi</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalKpis}</div>
-            <p className="text-xs text-muted-foreground">
-              Được phân bổ từ CSF cấp công ty
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Cần chú ý</CardTitle>
-            <AlertCircle className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-amber-600">
-              {stats.filter((s) => s.score > 0 && s.score < 70).length}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Phương diện dưới ngưỡng chấp nhận
-            </p>
-          </CardContent>
-        </Card>
+      {/* Charts Section */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Bar Chart by Perspective */}
+        <PerspectiveBarChart data={chartData} />
+
+        {/* Stats Grid */}
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Mục tiêu chiến lược</CardTitle>
+              <Target className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{totalObjectives}</div>
+              <p className="text-xs text-muted-foreground">
+                Đang active trong hệ thống
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">KPIs đang theo dõi</CardTitle>
+              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{totalKpis}</div>
+              <p className="text-xs text-muted-foreground">
+                Được phân bổ từ CSF cấp công ty
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="sm:col-span-2 xl:col-span-2">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Cần chú ý</CardTitle>
+              <AlertCircle className="h-4 w-4 text-amber-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-amber-600">
+                {stats.filter((s) => s.score > 0 && s.score < 70).length}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Phương diện dưới ngưỡng chấp nhận (70%)
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Perspective Cards */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Chi tiết theo Phương diện</h3>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {stats.map((perspective) => (
+            <Card key={perspective.id} className="relative overflow-hidden">
+              <div
+                className="absolute left-0 top-0 bottom-0 w-1"
+                style={{ backgroundColor: perspective.color || '#888' }}
+              />
+              <CardHeader className="pb-2">
+                <CardDescription className="flex items-center justify-between">
+                  <span>{perspective.nameEn}</span>
+                  {perspective.trend === 'up' ? (
+                    <TrendingUp className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <TrendingDown className="h-4 w-4 text-red-500" />
+                  )}
+                </CardDescription>
+                <CardTitle className="text-lg">{perspective.name}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-baseline gap-2">
+                  <span className={`text-3xl font-bold ${getScoreColor(perspective.score)}`}>
+                    {perspective.score > 0 ? `${perspective.score}%` : 'N/A'}
+                  </span>
+                </div>
+                <div className="mt-2 flex gap-3 text-xs text-muted-foreground">
+                  <span>{perspective.objectiveCount} mục tiêu</span>
+                  <span>•</span>
+                  <span>{perspective.kpiCount} KPIs</span>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
 
       {/* Recent Activity */}

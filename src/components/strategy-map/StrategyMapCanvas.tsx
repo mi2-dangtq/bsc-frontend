@@ -214,6 +214,24 @@ export function StrategyMapCanvas({ year }: StrategyMapCanvasProps) {
     [nodes, setEdges, api]
   );
 
+  // Handle edge deletion via keyboard (Delete/Backspace)
+  const onEdgesDelete = useCallback(
+    async (deletedEdges: Edge[]) => {
+      for (const edge of deletedEdges) {
+        // Get DB ID from edge data or edge id
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const dbId = (edge.data as any)?.dbId || parseInt(edge.id.replace('edge-', ''));
+        if (dbId) {
+          const success = await api.deleteLink(dbId);
+          if (success) {
+            toast.success('Đã xóa liên kết');
+          }
+        }
+      }
+    },
+    [api]
+  );
+
   // Open dialog to add new objective
   const openAddDialog = useCallback((laneId: string) => {
     const perspective = lanePerspectives.find((p) => p.id === laneId);
@@ -468,6 +486,7 @@ export function StrategyMapCanvas({ year }: StrategyMapCanvasProps) {
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
+          onEdgesDelete={onEdgesDelete}
           onConnect={onConnect}
           onNodeDoubleClick={onNodeDoubleClick}
           nodeTypes={nodeTypes}
@@ -485,6 +504,7 @@ export function StrategyMapCanvas({ year }: StrategyMapCanvasProps) {
           nodesDraggable={true}
           nodesConnectable={true}
           elementsSelectable={true}
+          deleteKeyCode={['Backspace', 'Delete']}
           defaultEdgeOptions={{ type: 'smoothstep', animated: false }}
         >
           <Background variant={BackgroundVariant.Dots} gap={20} size={1} />

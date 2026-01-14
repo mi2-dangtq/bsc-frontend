@@ -22,27 +22,28 @@ export function PerspectiveLane({
 }: PerspectiveLaneProps) {
   return (
     <div
-      className="absolute left-0 right-0 border-b border-dashed border-slate-300"
+      className="absolute left-0 right-0 border-b border-slate-100"
       style={{
         top: y,
         height: height,
       }}
     >
-      {/* Lane Label - với pointer-events-auto để cho phép click */}
+      {/* Lane Label - Flat Design */}
       <div
-        className="absolute left-0 top-0 bottom-0 w-[180px] flex flex-col justify-center px-4 border-r border-slate-200 pointer-events-auto z-10"
+        className="absolute left-0 top-0 bottom-0 w-[180px] flex flex-col justify-center px-4 
+          border-r border-slate-100 pointer-events-auto z-10"
         style={{
-          background: `linear-gradient(to right, ${color}15, transparent)`,
+          backgroundColor: `${color}06`, // Very subtle solid color
         }}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <div
-            className="w-3 h-3 rounded-full"
+            className="w-2.5 h-2.5 rounded-full"
             style={{ backgroundColor: color }}
           />
           <div>
             <p className="text-sm font-semibold text-slate-700">{name}</p>
-            <p className="text-xs text-slate-500">{nameEn}</p>
+            <p className="text-[11px] text-slate-400">{nameEn}</p>
           </div>
         </div>
         
@@ -50,7 +51,8 @@ export function PerspectiveLane({
         <Button
           variant="ghost"
           size="sm"
-          className="mt-2 w-full justify-start text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+          className="mt-2 h-7 w-full justify-start text-xs text-slate-400 
+            hover:text-slate-600 hover:bg-slate-100/50"
           onClick={(e) => {
             e.stopPropagation();
             onAddObjective?.();
@@ -61,9 +63,9 @@ export function PerspectiveLane({
         </Button>
       </div>
 
-      {/* Lane Guide Lines */}
+      {/* Lane Guide Line - Subtle */}
       <div 
-        className="absolute left-[180px] right-0 top-1/2 border-t border-dotted border-slate-200"
+        className="absolute left-[180px] right-0 top-1/2 border-t border-slate-100"
       />
     </div>
   );

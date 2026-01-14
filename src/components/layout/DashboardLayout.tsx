@@ -208,7 +208,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { DepartmentProvider, useDepartment } from '@/contexts';
+import { DepartmentProvider, useDepartment, PerspectiveProvider } from '@/contexts';
 
 function DepartmentSelector() {
   const { departments, selectedDepartment, setSelectedDepartment, loading } = useDepartment();
@@ -272,8 +272,10 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <DepartmentProvider>
-      <DashboardLayoutInner>{children}</DashboardLayoutInner>
-    </DepartmentProvider>
+    <PerspectiveProvider>
+      <DepartmentProvider>
+        <DashboardLayoutInner>{children}</DashboardLayoutInner>
+      </DepartmentProvider>
+    </PerspectiveProvider>
   );
 }

@@ -6,9 +6,12 @@ import { Edit, Trash2, Target, Ruler } from 'lucide-react';
 
 export interface KPI {
   id: string;
+  dbId?: number;    // KpiAllocation ID from database
+  kpiLibId?: number; // KpiLibrary ID reference
   csfId: string;
   name: string;
   unit?: string;
+  weight?: number;  // KPI weight percentage
   target?: number; // Alias for targetGoal (backward compatibility)
   // Full target fields for scoring
   targetMin?: number;       // Điểm sàn (0% điểm)

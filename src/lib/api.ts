@@ -254,6 +254,11 @@ export const kpiAllocationAPI = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+  update: (id: number, data: Partial<KPIAllocation>) =>
+    fetchAPI<KPIAllocation>(`/kpi/allocations/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
   delete: (id: number) =>
     fetchAPI<void>(`/kpi/allocations/${id}`, { method: 'DELETE' }),
 };
@@ -334,6 +339,59 @@ export const scorecardAPI = {
     if (filters?.year) params.set('year', filters.year.toString());
     const query = params.toString() ? `?${params}` : '';
     return fetchAPI<ScorecardSummary>(`/scorecard/summary${query}`);
+  },
+};
+
+// ===== Weighting Validation =====
+export interface ObjectiveWeightStatus {
+  id: number;
+  name: string;
+  code: string | null;
+  weight: number;
+  kpisSum: number;
+  isValid: boolean;
+  kpis: { id: number; name: string; weight: number }[];
+}
+
+export interface PerspectiveWeightStatus {
+  id: number;
+  name: string;
+  color: string | null;
+  weight: number;
+  objectivesSum: number;
+  isValid: boolean;
+  objectives: ObjectiveWeightStatus[];
+}
+
+export interface WeightValidationStatus {
+  isValid: boolean;
+  totalPerspectivesWeight: number;
+  isPerspectivesTotalValid: boolean;
+  perspectives: PerspectiveWeightStatus[];
+}
+
+export interface WeightValidationSummary {
+  isValid: boolean;
+  totalPerspectivesWeight: number;
+  perspectives: {
+    id: number;
+    name: string;
+    weight: number;
+    objectivesSum: number;
+    objectiveCount: number;
+    isValid: boolean;
+    invalidObjectivesCount: number;
+  }[];
+}
+
+export const weightingAPI = {
+  getStatus: (year?: number) => {
+    const query = year ? `?year=${year}` : '';
+    return fetchAPI<WeightValidationStatus>(`/weighting/status${query}`);
+  },
+  getSummary: (year?: number) => {
+    const query = year ? `?year=${year}` : '';
+    return fetchAPI<WeightValidationSummary>(`/weighting/summary${query}`);
   },
 };
 

@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
   Select,
   SelectContent,
@@ -13,26 +12,26 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
   Target,
-  LayoutGrid,
-  Table2,
   ArrowRight,
   Filter,
   RefreshCw,
+  FileText,
+  BarChart3,
+  Layers,
 } from 'lucide-react';
-import { ObjectiveCard } from './ObjectiveCard';
-import { ObjectiveTable } from './ObjectiveTable';
 import Link from 'next/link';
 import { objectivesAPI, csfAPI, type Objective as APIObjective } from '@/lib/api';
+import { usePerspectives } from '@/contexts';
 import { toast } from 'sonner';
-
-// 4 BSC Perspectives
-const PERSPECTIVES = [
-  { id: 1, name: 'Tài chính', nameEn: 'Financial', color: '#22c55e' },
-  { id: 2, name: 'Khách hàng', nameEn: 'Customer', color: '#3b82f6' },
-  { id: 3, name: 'Quy trình nội bộ', nameEn: 'Internal Process', color: '#f59e0b' },
-  { id: 4, name: 'Học hỏi & Phát triển', nameEn: 'Learning & Growth', color: '#8b5cf6' },
-];
 
 export interface Objective {
   id: string;
@@ -46,13 +45,14 @@ export interface Objective {
   year: number;
   csfCount?: number;
   kpiCount?: number;
+  themeId?: number | null;
+  themeName?: string;
+  themeColor?: string;
 }
 
-type ViewMode = 'card' | 'table';
-
 export function ObjectivesManager() {
+  const { perspectives } = usePerspectives();
   const [objectives, setObjectives] = useState<Objective[]>([]);
-  const [viewMode, setViewMode] = useState<ViewMode>('card');
   const [filterPerspective, setFilterPerspective] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +70,7 @@ export function ObjectivesManager() {
 
       // Transform API data to component format
       const parsedObjectives: Objective[] = apiObjectives.map((obj: APIObjective) => {
-        const perspective = PERSPECTIVES.find(p => p.id === obj.perspectiveId);
+        const perspective = perspectives.find(p => p.id === obj.perspectiveId);
         
         // Count CSFs for this objective
         const objectiveCsfs = csfs.filter(c => c.objectiveId === obj.id);
@@ -92,6 +92,9 @@ export function ObjectivesManager() {
           year: obj.year,
           csfCount,
           kpiCount,
+          themeId: obj.theme?.id,
+          themeName: obj.theme?.name,
+          themeColor: obj.theme?.color,
         };
       });
 
@@ -115,19 +118,19 @@ export function ObjectivesManager() {
     return objectives.filter(obj => obj.perspectiveId === parseInt(filterPerspective));
   }, [objectives, filterPerspective]);
 
-  // Group objectives by perspective
-  const groupedObjectives = useMemo(() => {
-    const groups: Record<number, Objective[]> = {};
-    PERSPECTIVES.forEach(p => { groups[p.id] = []; });
+  // Group objectives by perspective for display
+  const groupedByPerspective = useMemo(() => {
+    const result: { perspective: typeof perspectives[0]; objectives: Objective[] }[] = [];
     
-    filteredObjectives.forEach(obj => {
-      if (groups[obj.perspectiveId]) {
-        groups[obj.perspectiveId].push(obj);
+    perspectives.forEach(p => {
+      const perspectiveObjs = filteredObjectives.filter(o => o.perspectiveId === p.id);
+      if (filterPerspective === 'all' || filterPerspective === p.id.toString()) {
+        result.push({ perspective: p, objectives: perspectiveObjs });
       }
     });
     
-    return groups;
-  }, [filteredObjectives]);
+    return result;
+  }, [filteredObjectives, filterPerspective, perspectives]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -141,7 +144,7 @@ export function ObjectivesManager() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex items-center gap-2 text-muted-foreground">
           <RefreshCw className="h-5 w-5 animate-spin" />
-          <span>Đang tải dữ liệu từ server...</span>
+          <span>Đang tải dữ liệu...</span>
         </div>
       </div>
     );
@@ -166,7 +169,7 @@ export function ObjectivesManager() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Quản lý Mục tiêu</h1>
           <p className="text-muted-foreground">
-            Xem và quản lý các mục tiêu chiến lược từ Bản đồ chiến lược
+            Danh sách tất cả mục tiêu chiến lược theo phương diện BSC
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -177,102 +180,57 @@ export function ObjectivesManager() {
           <Button asChild>
             <Link href="/strategy-map">
               <Target className="h-4 w-4 mr-2" />
-              Mở Bản đồ chiến lược
+              Bản đồ chiến lược
             </Link>
           </Button>
         </div>
       </div>
 
-      {/* Statistics */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Tổng Mục tiêu
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalObjectives}</div>
-            <p className="text-xs text-muted-foreground">
-              Khuyến nghị: 8-12 mục tiêu
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Tổng CSF
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalCsf}</div>
-            <p className="text-xs text-muted-foreground">
-              Yếu tố thành công then chốt
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Tổng KPI
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalKpi}</div>
-            <p className="text-xs text-muted-foreground">
-              Chỉ số đo lường hiệu suất
-            </p>
-          </CardContent>
-        </Card>
+      {/* Statistics - Compact inline */}
+      <div className="flex items-center gap-6 py-3 px-4 bg-muted/50 rounded-lg">
+        <div className="flex items-center gap-2">
+          <Target className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">Mục tiêu:</span>
+          <span className="font-semibold">{stats.totalObjectives}</span>
+        </div>
+        <div className="h-4 w-px bg-border" />
+        <div className="flex items-center gap-2">
+          <Layers className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">CSF:</span>
+          <span className="font-semibold">{stats.totalCsf}</span>
+        </div>
+        <div className="h-4 w-px bg-border" />
+        <div className="flex items-center gap-2">
+          <BarChart3 className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">KPI:</span>
+          <span className="font-semibold">{stats.totalKpi}</span>
+        </div>
+        <div className="flex-1" />
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <Select value={filterPerspective} onValueChange={setFilterPerspective}>
+            <SelectTrigger className="w-[180px] h-8">
+              <SelectValue placeholder="Lọc phương diện" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả phương diện</SelectItem>
+              {perspectives.map((p) => (
+                <SelectItem key={p.id} value={p.id.toString()}>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-2.5 h-2.5 rounded-full"
+                      style={{ backgroundColor: p.color }}
+                    />
+                    {p.name}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {/* Filters & View Toggle */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Filter className="h-5 w-5 text-muted-foreground" />
-              <Select value={filterPerspective} onValueChange={setFilterPerspective}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Lọc theo phương diện" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tất cả phương diện</SelectItem>
-                  {PERSPECTIVES.map((p) => (
-                    <SelectItem key={p.id} value={p.id.toString()}>
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: p.color }}
-                        />
-                        {p.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <ToggleGroup
-              type="single"
-              value={viewMode}
-              onValueChange={(v: string) => v && setViewMode(v as ViewMode)}
-              className="bg-muted p-1 rounded-lg"
-            >
-              <ToggleGroupItem value="card" aria-label="Card view" className="h-8 px-3">
-                <LayoutGrid className="h-4 w-4 mr-1" />
-                Card
-              </ToggleGroupItem>
-              <ToggleGroupItem value="table" aria-label="Table view" className="h-8 px-3">
-                <Table2 className="h-4 w-4 mr-1" />
-                Table
-              </ToggleGroupItem>
-            </ToggleGroup>
-          </div>
-        </CardHeader>
-      </Card>
-
-      {/* Content */}
+      {/* Unified Table View - Grouped by Perspective */}
       {objectives.length === 0 ? (
         <Card>
           <CardContent className="py-12">
@@ -291,46 +249,134 @@ export function ObjectivesManager() {
             </div>
           </CardContent>
         </Card>
-      ) : viewMode === 'card' ? (
-        // Card View - Grouped by Perspective
-        <div className="space-y-6">
-          {PERSPECTIVES.map((perspective) => {
-            const perspectiveObjectives = groupedObjectives[perspective.id];
-            if (filterPerspective !== 'all' && filterPerspective !== perspective.id.toString()) {
-              return null;
-            }
-            return (
-              <Card key={perspective.id}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: perspective.color }}
-                    />
-                    <CardTitle className="text-lg">{perspective.name}</CardTitle>
-                    <Badge variant="secondary">{perspectiveObjectives.length} mục tiêu</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {perspectiveObjectives.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-4 text-center">
-                      Chưa có mục tiêu nào trong phương diện này
-                    </p>
-                  ) : (
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                      {perspectiveObjectives.map((obj) => (
-                        <ObjectiveCard key={obj.id} objective={obj} />
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
       ) : (
-        // Table View
-        <ObjectiveTable objectives={filteredObjectives} />
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/30">
+                  <TableHead className="w-[160px] font-semibold">Phương diện</TableHead>
+                  <TableHead className="w-[80px] font-semibold">Mã</TableHead>
+                  <TableHead className="font-semibold">Tên mục tiêu</TableHead>
+                  <TableHead className="w-[150px] font-semibold">Nhóm CL</TableHead>
+                  <TableHead className="w-[80px] text-center font-semibold">Tỷ trọng</TableHead>
+                  <TableHead className="w-[60px] text-center font-semibold">CSF</TableHead>
+                  <TableHead className="w-[60px] text-center font-semibold">KPI</TableHead>
+                  <TableHead className="w-[90px] text-center font-semibold">Thao tác</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {groupedByPerspective.map(({ perspective, objectives: perspectiveObjs }) => {
+                  if (perspectiveObjs.length === 0) return null;
+                  
+                  return perspectiveObjs.map((obj, idx) => (
+                    <TableRow key={obj.id} className="hover:bg-muted/30">
+                      {/* Perspective - only show on first row */}
+                      {idx === 0 ? (
+                        <TableCell 
+                          rowSpan={perspectiveObjs.length}
+                          className="align-top font-medium border-r"
+                          style={{ 
+                            borderLeft: `3px solid ${perspective.color}`,
+                            backgroundColor: `${perspective.color}05`,
+                          }}
+                        >
+                          <div className="py-1">
+                            <p className="text-sm font-semibold">{perspective.name}</p>
+                            <p className="text-[11px] text-muted-foreground">{perspective.nameEn}</p>
+                          </div>
+                        </TableCell>
+                      ) : null}
+                      
+                      {/* Code */}
+                      <TableCell>
+                        {obj.code ? (
+                          <Badge
+                            variant="outline"
+                            className="text-xs font-mono"
+                            style={{ borderColor: obj.color, color: obj.color }}
+                          >
+                            {obj.code}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
+                      </TableCell>
+                      
+                      {/* Name + Description */}
+                      <TableCell>
+                        <div>
+                          <p className="font-medium text-sm">{obj.name}</p>
+                          {obj.description && (
+                            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                              {obj.description}
+                            </p>
+                          )}
+                        </div>
+                      </TableCell>
+                      
+                      {/* Theme */}
+                      <TableCell>
+                        {obj.themeName ? (
+                          <div 
+                            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium"
+                            style={{ 
+                              backgroundColor: `${obj.themeColor}15`,
+                              color: obj.themeColor,
+                            }}
+                          >
+                            <span 
+                              className="w-1.5 h-1.5 rounded-full" 
+                              style={{ backgroundColor: obj.themeColor }}
+                            />
+                            {obj.themeName}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      
+                      {/* Weight */}
+                      <TableCell className="text-center">
+                        {obj.weight !== undefined && obj.weight > 0 ? (
+                          <Badge variant="secondary" className="text-xs">
+                            {obj.weight}%
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
+                      </TableCell>
+                      
+                      {/* CSF Count */}
+                      <TableCell className="text-center">
+                        <span className={`text-sm ${(obj.csfCount || 0) === 0 ? 'text-muted-foreground' : ''}`}>
+                          {obj.csfCount || 0}
+                        </span>
+                      </TableCell>
+                      
+                      {/* KPI Count */}
+                      <TableCell className="text-center">
+                        <span className={`text-sm ${(obj.kpiCount || 0) === 0 ? 'text-muted-foreground' : ''}`}>
+                          {obj.kpiCount || 0}
+                        </span>
+                      </TableCell>
+                      
+                      {/* Actions */}
+                      <TableCell className="text-center">
+                        <Button variant="ghost" size="sm" className="h-7 px-2" asChild>
+                          <Link href={`/csf?objective=${obj.id}`}>
+                            <FileText className="h-3.5 w-3.5 mr-1" />
+                            CSF
+                          </Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ));
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

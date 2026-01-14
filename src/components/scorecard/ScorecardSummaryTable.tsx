@@ -138,6 +138,7 @@ export function ScorecardSummaryTable() {
                   <TableHead className="w-[140px] font-semibold">Góc Nhìn</TableHead>
                   <TableHead className="w-[180px] font-semibold">Mục Tiêu</TableHead>
                   <TableHead className="w-[180px] font-semibold">KPI</TableHead>
+                  <TableHead className="w-[60px] font-semibold text-center">Tỷ trọng</TableHead>
                   <TableHead className="w-[60px] font-semibold text-center">Đơn vị</TableHead>
                   <TableHead className="w-[50px] font-semibold text-center">Loại</TableHead>
                   <TableHead className="w-[70px] font-semibold text-center">Min</TableHead>
@@ -211,6 +212,25 @@ export function ScorecardSummaryTable() {
                           {/* KPI Name */}
                           <TableCell className="text-sm">{kpi.name}</TableCell>
 
+                          {/* KPI Weight */}
+                          <TableCell className="text-center">
+                            {kpi.weight ? (
+                              <Badge 
+                                variant="outline" 
+                                className="text-xs font-medium"
+                                style={{ 
+                                  backgroundColor: `${perspectiveColor}15`,
+                                  borderColor: perspectiveColor,
+                                  color: perspectiveColor 
+                                }}
+                              >
+                                {kpi.weight}%
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">-</span>
+                            )}
+                          </TableCell>
+
                           {/* Unit */}
                           <TableCell className="text-center text-sm text-muted-foreground">
                             {kpi.unit || '-'}
@@ -266,7 +286,7 @@ export function ScorecardSummaryTable() {
                         <TableCell className="align-top border-r">
                           {objective.name}
                         </TableCell>
-                        <TableCell colSpan={8} className="text-center text-muted-foreground text-sm italic">
+                        <TableCell colSpan={9} className="text-center text-muted-foreground text-sm italic">
                           Chưa có KPI
                         </TableCell>
                       </TableRow>

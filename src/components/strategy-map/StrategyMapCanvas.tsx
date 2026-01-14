@@ -26,23 +26,15 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Save, RotateCcw, RefreshCw, Layers } from 'lucide-react';
 import { useStrategyMapAPI, getDbIdFromNodeId } from '@/hooks/useStrategyMapAPI';
-import { useDepartment } from '@/contexts';
-
-// 4 BSC Perspectives
-const PERSPECTIVES = [
-  { id: 'lane-1', sortOrder: 1, name: 'Tài chính', nameEn: 'Financial', color: '#22c55e' },
-  { id: 'lane-2', sortOrder: 2, name: 'Khách hàng', nameEn: 'Customer', color: '#3b82f6' },
-  { id: 'lane-3', sortOrder: 3, name: 'Quy trình nội bộ', nameEn: 'Internal Process', color: '#f59e0b' },
-  { id: 'lane-4', sortOrder: 4, name: 'Học hỏi & Phát triển', nameEn: 'Learning & Growth', color: '#8b5cf6' },
-];
+import { useDepartment, usePerspectives } from '@/contexts';
 
 const LANE_HEIGHT = 160;
 const LANE_WIDTH = 1200;
 const LABEL_WIDTH = 180;
 
 // Tạo lane nodes (parent nodes)
-function createLaneNodes(): Node[] {
-  return PERSPECTIVES.map((p, index) => ({
+function createLaneNodes(perspectives: { id: string; sortOrder: number; name: string; nameEn: string; color: string }[]): Node[] {
+  return perspectives.map((p, index) => ({
     id: p.id,
     type: 'lane',
     position: { x: 0, y: index * LANE_HEIGHT },
@@ -108,8 +100,20 @@ export interface StrategyMapCanvasProps {
 export function StrategyMapCanvas({ year }: StrategyMapCanvasProps) {
   const api = useStrategyMapAPI();
   const { selectedDepartment } = useDepartment();
+  const { perspectives } = usePerspectives();
   
-  const initialNodes = useMemo(() => createLaneNodes(), []);
+  // Map perspectives to lane format with lane-X ids
+  const lanePerspectives = useMemo(() => 
+    perspectives.map(p => ({
+      id: `lane-${p.sortOrder}`,
+      sortOrder: p.sortOrder,
+      name: p.name,
+      nameEn: p.nameEn,
+      color: p.color,
+    })), [perspectives]
+  );
+  
+  const initialNodes = useMemo(() => createLaneNodes(lanePerspectives), [lanePerspectives]);
   const [nodes, setNodes] = useNodesState<Node>(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -125,7 +129,7 @@ export function StrategyMapCanvas({ year }: StrategyMapCanvasProps) {
       
       if (isMounted) {
         // Merge lane nodes with objective nodes from API
-        setNodes([...createLaneNodes(), ...apiNodes]);
+        setNodes([...createLaneNodes(lanePerspectives), ...apiNodes]);
         setEdges(apiEdges);
         setIsLoading(false);
       }
@@ -198,9 +202,9 @@ export function StrategyMapCanvas({ year }: StrategyMapCanvasProps) {
             {
               ...connection,
               type: 'smoothstep',
-              animated: true,
-              style: { stroke: '#64748b', strokeWidth: 2 },
-              markerEnd: { type: MarkerType.ArrowClosed, color: '#64748b' },
+              animated: false,
+              style: { stroke: '#94a3b8', strokeWidth: 1.5 },
+              markerEnd: { type: MarkerType.ArrowClosed, color: '#94a3b8' },
             },
             eds
           )
@@ -212,7 +216,7 @@ export function StrategyMapCanvas({ year }: StrategyMapCanvasProps) {
 
   // Open dialog to add new objective
   const openAddDialog = useCallback((laneId: string) => {
-    const perspective = PERSPECTIVES.find((p) => p.id === laneId);
+    const perspective = lanePerspectives.find((p) => p.id === laneId);
     if (!perspective) return;
 
     setPendingLaneId(laneId);
@@ -225,7 +229,7 @@ export function StrategyMapCanvas({ year }: StrategyMapCanvasProps) {
     });
     setDialogMode('create');
     setDialogOpen(true);
-  }, []);
+  }, [lanePerspectives]);
 
   // Listen for add-objective events from LaneNode buttons
   useEffect(() => {
@@ -245,7 +249,7 @@ export function StrategyMapCanvas({ year }: StrategyMapCanvasProps) {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const nodeData = node.data as any;
-      const lane = PERSPECTIVES.find((p) => p.id === node.parentId);
+      const lane = lanePerspectives.find((p) => p.id === node.parentId);
 
       setSelectedObjective({
         id: node.id,
@@ -261,14 +265,14 @@ export function StrategyMapCanvas({ year }: StrategyMapCanvasProps) {
       setDialogMode('edit');
       setDialogOpen(true);
     },
-    []
+    [lanePerspectives]
   );
 
   // Save objective (create or update) via API
   const handleSaveObjective = useCallback(
     async (data: { name: string; code?: string; weight?: number; description?: string; themeId?: number | null }) => {
       if (dialogMode === 'create' && pendingLaneId !== null) {
-        const perspective = PERSPECTIVES.find((p) => p.id === pendingLaneId);
+        const perspective = lanePerspectives.find((p) => p.id === pendingLaneId);
         if (!perspective) return;
 
         const existingInLane = nodes.filter((n) => n.parentId === pendingLaneId);
@@ -323,7 +327,7 @@ export function StrategyMapCanvas({ year }: StrategyMapCanvasProps) {
       setPendingLaneId(null);
       setSelectedObjective(null);
     },
-    [dialogMode, pendingLaneId, selectedObjective, nodes, setNodes, year, api, selectedDepartment?.id]
+    [dialogMode, pendingLaneId, selectedObjective, nodes, setNodes, year, api, selectedDepartment?.id, lanePerspectives]
   );
 
   // Delete objective via API
@@ -348,11 +352,11 @@ export function StrategyMapCanvas({ year }: StrategyMapCanvasProps) {
   const handleRefresh = useCallback(async () => {
     setIsLoading(true);
     const { nodes: apiNodes, edges: apiEdges } = await api.fetchObjectives(year);
-    setNodes([...createLaneNodes(), ...apiNodes]);
+    setNodes([...createLaneNodes(lanePerspectives), ...apiNodes]);
     setEdges(apiEdges);
     setIsLoading(false);
     toast.success('Đã làm mới dữ liệu');
-  }, [year, api, setNodes, setEdges]);
+  }, [year, api, setNodes, setEdges, lanePerspectives]);
 
   // Save positions to API (when dragging)
   const handleSavePositions = useCallback(async () => {
@@ -382,11 +386,11 @@ export function StrategyMapCanvas({ year }: StrategyMapCanvasProps) {
         if (dbId) await api.deleteObjective(dbId);
       }
       
-      setNodes(createLaneNodes());
+      setNodes(createLaneNodes(lanePerspectives));
       setEdges([]);
       toast.success('Đã xóa bản đồ chiến lược');
     }
-  }, [nodes, setNodes, setEdges, api]);
+  }, [nodes, setNodes, setEdges, api, lanePerspectives]);
 
   // Rule 02: Connectivity check - mỗi mục tiêu cần có đường vào/ra (trừ Financial là top-level)
   const objectiveNodes = nodes.filter((n) => n.type === 'objective');
@@ -481,7 +485,7 @@ export function StrategyMapCanvas({ year }: StrategyMapCanvasProps) {
           nodesDraggable={true}
           nodesConnectable={true}
           elementsSelectable={true}
-          defaultEdgeOptions={{ type: 'smoothstep', animated: true }}
+          defaultEdgeOptions={{ type: 'smoothstep', animated: false }}
         >
           <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
         </ReactFlow>

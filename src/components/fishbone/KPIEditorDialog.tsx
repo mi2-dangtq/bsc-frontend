@@ -38,6 +38,7 @@ import type { KPILibrary } from '@/lib/api';
 
 const kpiFormSchema = z.object({
   kpiLibId: z.number().min(1, 'Vui lòng chọn KPI từ thư viện'),
+  weight: z.number().min(0, 'Tỷ trọng phải >= 0').max(100, 'Tỷ trọng phải <= 100'),
   targetMin: z.number().optional(),
   targetThreshold: z.number().optional(),
   targetGoal: z.number().min(0, 'Mục tiêu phải >= 0'),
@@ -48,6 +49,7 @@ type KPIFormValues = z.infer<typeof kpiFormSchema>;
 
 export interface KPISaveData {
   kpiLibId: number;
+  weight: number;
   targets: {
     targetMin?: number;
     targetThreshold?: number;
@@ -63,6 +65,10 @@ interface KPIEditorDialogProps {
   kpiLibrary: KPILibrary[];
   onSave: (data: KPISaveData) => void;
   mode: 'create' | 'edit';
+  // Weight validation props
+  objectiveWeight?: number;
+  usedWeight?: number;
+  editingKpiWeight?: number;
 }
 
 export function KPIEditorDialog({
@@ -72,13 +78,20 @@ export function KPIEditorDialog({
   kpiLibrary,
   onSave,
   mode,
+  objectiveWeight = 0,
+  usedWeight = 0,
+  editingKpiWeight = 0,
 }: KPIEditorDialogProps) {
   const [selectedKpi, setSelectedKpi] = useState<KPILibrary | null>(null);
+  
+  // Calculate remaining weight
+  const remainingWeight = objectiveWeight - usedWeight + (mode === 'edit' ? editingKpiWeight : 0);
 
   const form = useForm<KPIFormValues>({
     resolver: zodResolver(kpiFormSchema),
     defaultValues: {
       kpiLibId: 0,
+      weight: 0,
       targetMin: undefined,
       targetThreshold: undefined,
       targetGoal: 0,
@@ -93,6 +106,7 @@ export function KPIEditorDialog({
       const libId = kpi.kpiLibId || 0;
       form.reset({
         kpiLibId: libId,
+        weight: (kpi as unknown as { weight?: number }).weight || 0,
         targetMin: kpi.targetMin,
         targetThreshold: kpi.targetThreshold,
         targetGoal: kpi.targetGoal || kpi.target || 0,
@@ -102,6 +116,7 @@ export function KPIEditorDialog({
     } else if (!kpi && open) {
       form.reset({
         kpiLibId: 0,
+        weight: Math.min(remainingWeight, 100),
         targetMin: undefined,
         targetThreshold: undefined,
         targetGoal: 0,
@@ -121,6 +136,7 @@ export function KPIEditorDialog({
   const onSubmit = (data: KPIFormValues) => {
     onSave({
       kpiLibId: data.kpiLibId,
+      weight: data.weight,
       targets: {
         targetMin: data.targetMin,
         targetThreshold: data.targetThreshold,
@@ -209,6 +225,41 @@ export function KPIEditorDialog({
                   <span>Tần suất: {selectedKpi.frequency}</span>
                 </div>
               </div>
+            )}
+
+            {/* Weight field - show when KPI is selected */}
+            {selectedKpi && objectiveWeight > 0 && (
+              <FormField
+                control={form.control}
+                name="weight"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center justify-between">
+                      <FormLabel>Tỷ trọng KPI *</FormLabel>
+                      <span className={`text-xs ${remainingWeight < 0 ? 'text-red-500 font-medium' : 'text-muted-foreground'}`}>
+                        Còn lại: {remainingWeight.toFixed(1)}% / {objectiveWeight}%
+                      </span>
+                    </div>
+                    <FormControl>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          step="0.1"
+                          placeholder="VD: 10"
+                          value={field.value || ''}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          className="h-9"
+                        />
+                        <span className="text-sm text-muted-foreground">%</span>
+                      </div>
+                    </FormControl>
+                    <FormDescription className="text-xs">
+                      Tổng tỷ trọng các KPI phải bằng tỷ trọng Mục tiêu ({objectiveWeight}%)
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             )}
 
             {/* Target fields - only show when KPI is selected */}

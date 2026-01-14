@@ -7,22 +7,9 @@ import { Loader2, AlertTriangle, CheckCircle, Building2, BarChart3 } from 'lucid
 import { AllocationMatrix } from './AllocationMatrix';
 import { CSFAssignment } from './CSFAssignment';
 import { useDepartments, type Department } from '@/hooks/useDepartments';
+import { usePerspectives } from '@/contexts';
 
-// 4 BSC Perspectives
-const PERSPECTIVES = [
-  { id: 1, name: 'Tài chính', color: '#22c55e' },
-  { id: 2, name: 'Khách hàng', color: '#3b82f6' },
-  { id: 3, name: 'Quy trình nội bộ', color: '#f59e0b' },
-  { id: 4, name: 'Học hỏi & Phát triển', color: '#8b5cf6' },
-];
 
-// Default company weights
-const DEFAULT_COMPANY_WEIGHTS: Record<number, number> = {
-  1: 25, // Financial
-  2: 25, // Customer
-  3: 25, // Process
-  4: 25, // L&G
-};
 
 // Extended department for allocation
 interface AllocationDepartment extends Department {
@@ -42,6 +29,16 @@ export interface ValidationWarning {
 
 export function KPIAllocationManager() {
   const { departments: apiDepts, loading } = useDepartments();
+  const { perspectives } = usePerspectives();
+  
+  // Build company weights from perspectives (from DB)
+  const companyWeights: Record<number, number> = useMemo(() => {
+    const weights: Record<number, number> = {};
+    perspectives.forEach(p => {
+      weights[p.id] = p.weight;
+    });
+    return weights;
+  }, [perspectives]);
 
   // Transform API departments to allocation format
   const departments: AllocationDepartment[] = useMemo(() => {
@@ -59,7 +56,7 @@ export function KPIAllocationManager() {
   const initialWeights = useMemo(() => {
     return departments.map((dept) => {
       const weights: Record<number, number> = {};
-      PERSPECTIVES.forEach((p) => {
+      perspectives.forEach((p) => {
         if (p.id === dept.primaryPerspective) {
           weights[p.id] = 50;
         } else {
@@ -72,7 +69,7 @@ export function KPIAllocationManager() {
       }
       return { departmentId: dept.id, weights };
     });
-  }, [departments]);
+  }, [departments, perspectives]);
 
   // User edits are stored separately and merged with initial weights
   const [weightEdits, setWeightEdits] = useState<Record<string, Record<number, number>>>({});
@@ -104,7 +101,7 @@ export function KPIAllocationManager() {
 
       const primaryWeight = dw.weights[dept.primaryPerspective] || 0;
       if (primaryWeight < 50) {
-        const primaryPerspective = PERSPECTIVES.find((p) => p.id === dept.primaryPerspective);
+        const primaryPerspective = perspectives.find((p) => p.id === dept.primaryPerspective);
         warnings.push({
           type: 'primary',
           departmentId: dw.departmentId,
@@ -114,12 +111,12 @@ export function KPIAllocationManager() {
     });
 
     if (departmentWeights.length > 0) {
-      PERSPECTIVES.forEach((p) => {
+      perspectives.forEach((p) => {
         const avg =
           departmentWeights.reduce((sum, dw) => sum + (dw.weights[p.id] || 0), 0) /
           departmentWeights.length;
-        const companyWeight = DEFAULT_COMPANY_WEIGHTS[p.id];
-        const diff = avg - companyWeight;
+        const perspWeight = companyWeights[p.id] || 25;
+        const diff = avg - perspWeight;
         if (Math.abs(diff) > 5) {
           warnings.push({
             type: 'balance',
@@ -131,7 +128,7 @@ export function KPIAllocationManager() {
     }
 
     return warnings;
-  }, [departmentWeights, departments]);
+  }, [departmentWeights, departments, perspectives, companyWeights]);
 
   // Update department weight
   const updateWeight = (departmentId: string, perspectiveId: number, value: number) => {
@@ -237,8 +234,8 @@ export function KPIAllocationManager() {
       {/* Allocation Matrix */}
       <AllocationMatrix
         departments={departments}
-        perspectives={PERSPECTIVES}
-        companyWeights={DEFAULT_COMPANY_WEIGHTS}
+        perspectives={perspectives}
+        companyWeights={companyWeights}
         departmentWeights={departmentWeights}
         onUpdateWeight={updateWeight}
       />

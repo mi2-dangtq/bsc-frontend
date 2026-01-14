@@ -10,6 +10,7 @@ export interface LocalKPI {
   kpiLibId?: number; // KpiLibrary ID
   name: string;
   unit?: string;
+  weight?: number; // KPI weight percentage
   target?: number; // Alias for targetGoal (backward compatibility)
   // Full target fields for scoring
   targetMin?: number;
@@ -54,8 +55,19 @@ export interface UseFishboneAPI {
       targetGoal: number;
       targetMax?: number;
     },
-    year: number
+    year: number,
+    weight?: number
   ) => Promise<LocalKPI | null>;
+  updateKpiAllocation: (
+    allocationId: number,
+    data: {
+      weight?: number;
+      targetMin?: number;
+      targetThreshold?: number;
+      targetGoal?: number;
+      targetMax?: number;
+    }
+  ) => Promise<boolean>;
   removeKpiFromCSF: (allocationId: number) => Promise<boolean>;
 }
 
@@ -96,6 +108,7 @@ export function useFishboneAPI(): UseFishboneAPI {
           kpiLibId: alloc.kpiLibId,
           name: alloc.kpiLib?.name || 'KPI',
           unit: alloc.kpiLib?.unit || undefined,
+          weight: alloc.weight ? Number(alloc.weight) : undefined,
           target: alloc.targetGoal ? Number(alloc.targetGoal) : undefined,
           targetMin: alloc.targetMin ? Number(alloc.targetMin) : undefined,
           targetThreshold: alloc.targetThreshold ? Number(alloc.targetThreshold) : undefined,
@@ -186,13 +199,14 @@ export function useFishboneAPI(): UseFishboneAPI {
       targetGoal: number;
       targetMax?: number;
     },
-    year: number
+    year: number,
+    weight?: number
   ): Promise<LocalKPI | null> => {
     try {
       const allocation = await kpiAllocationAPI.create({
         csfId: csfDbId,
         kpiLibId,
-        weight: 100, // Default weight
+        weight: weight ?? 100, // Use provided weight or default
         targetMin: targets.targetMin,
         targetThreshold: targets.targetThreshold,
         targetGoal: targets.targetGoal,
@@ -225,6 +239,28 @@ export function useFishboneAPI(): UseFishboneAPI {
     }
   }, [kpiLibrary]);
 
+  // Update KPI Allocation
+  const updateKpiAllocation = useCallback(async (
+    allocationId: number,
+    data: {
+      weight?: number;
+      targetMin?: number;
+      targetThreshold?: number;
+      targetGoal?: number;
+      targetMax?: number;
+    }
+  ): Promise<boolean> => {
+    try {
+      await kpiAllocationAPI.update(allocationId, data);
+      toast.success('Đã cập nhật KPI');
+      return true;
+    } catch (err) {
+      console.error('Error updating KPI:', err);
+      toast.error('Không thể cập nhật KPI');
+      return false;
+    }
+  }, []);
+
   // Remove KPI from CSF (delete allocation)
   const removeKpiFromCSF = useCallback(async (allocationId: number): Promise<boolean> => {
     try {
@@ -248,6 +284,7 @@ export function useFishboneAPI(): UseFishboneAPI {
     updateCSF,
     deleteCSF,
     addKpiToCSF,
+    updateKpiAllocation,
     removeKpiFromCSF,
   };
 }

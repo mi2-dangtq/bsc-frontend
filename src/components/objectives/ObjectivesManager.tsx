@@ -163,70 +163,86 @@ export function ObjectivesManager() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-4">
+      {/* Header - Clean and modern */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Quản lý Mục tiêu</h1>
-          <p className="text-muted-foreground">
-            Danh sách tất cả mục tiêu chiến lược theo phương diện BSC
+          <p className="text-sm text-muted-foreground">
+            Danh sách mục tiêu chiến lược theo phương diện BSC
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={fetchObjectives} variant="outline" size="sm">
-            <RefreshCw className="h-4 w-4 mr-1" />
-            Refresh
+          <Button onClick={fetchObjectives} variant="outline" size="sm" className="h-8 text-xs">
+            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+            Làm mới
           </Button>
-          <Button asChild>
+          <Button asChild size="sm" className="h-8 text-xs shadow-sm">
             <Link href="/strategy-map">
-              <Target className="h-4 w-4 mr-2" />
+              <Target className="h-3.5 w-3.5 mr-1.5" />
               Bản đồ chiến lược
             </Link>
           </Button>
         </div>
       </div>
 
-      {/* Statistics - Compact inline */}
-      <div className="flex items-center gap-6 py-3 px-4 bg-muted/50 rounded-lg">
-        <div className="flex items-center gap-2">
-          <Target className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">Mục tiêu:</span>
-          <span className="font-semibold">{stats.totalObjectives}</span>
+      {/* Stats Cards - Matching Strategy Map style */}
+      <div className="grid grid-cols-4 gap-3">
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 border border-blue-200 dark:border-blue-800">
+          <div className="p-2 rounded-lg bg-blue-200 dark:bg-blue-800">
+            <Target className="h-4 w-4 text-blue-600 dark:text-blue-300" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Mục tiêu</p>
+            <p className="text-lg font-bold text-blue-700 dark:text-blue-400">{stats.totalObjectives}</p>
+          </div>
         </div>
-        <div className="h-4 w-px bg-border" />
-        <div className="flex items-center gap-2">
-          <Layers className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">CSF:</span>
-          <span className="font-semibold">{stats.totalCsf}</span>
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/30 dark:to-emerald-900/30 border border-emerald-200 dark:border-emerald-800">
+          <div className="p-2 rounded-lg bg-emerald-200 dark:bg-emerald-800">
+            <Layers className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">CSF</p>
+            <p className="text-lg font-bold text-emerald-700 dark:text-emerald-400">{stats.totalCsf}</p>
+          </div>
         </div>
-        <div className="h-4 w-px bg-border" />
-        <div className="flex items-center gap-2">
-          <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">KPI:</span>
-          <span className="font-semibold">{stats.totalKpi}</span>
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 border border-purple-200 dark:border-purple-800">
+          <div className="p-2 rounded-lg bg-purple-200 dark:bg-purple-800">
+            <BarChart3 className="h-4 w-4 text-purple-600 dark:text-purple-300" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">KPI</p>
+            <p className="text-lg font-bold text-purple-700 dark:text-purple-400">{stats.totalKpi}</p>
+          </div>
         </div>
-        <div className="flex-1" />
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <Select value={filterPerspective} onValueChange={setFilterPerspective}>
-            <SelectTrigger className="w-[180px] h-8">
-              <SelectValue placeholder="Lọc phương diện" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả phương diện</SelectItem>
-              {perspectives.map((p) => (
-                <SelectItem key={p.id} value={p.id.toString()}>
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-2.5 h-2.5 rounded-full"
-                      style={{ backgroundColor: p.color }}
-                    />
-                    {p.name}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        
+        {/* Filter - as 4th card */}
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border">
+          <div className="p-2 rounded-lg bg-slate-200 dark:bg-slate-700">
+            <Filter className="h-4 w-4 text-slate-600 dark:text-slate-300" />
+          </div>
+          <div className="flex-1">
+            <p className="text-xs text-muted-foreground mb-1">Lọc theo</p>
+            <Select value={filterPerspective} onValueChange={setFilterPerspective}>
+              <SelectTrigger className="h-7 text-xs border-slate-200">
+                <SelectValue placeholder="Phương diện" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả</SelectItem>
+                {perspectives.map((p) => (
+                  <SelectItem key={p.id} value={p.id.toString()}>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-2 h-2 rounded-full"
+                        style={{ backgroundColor: p.color }}
+                      />
+                      {p.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 

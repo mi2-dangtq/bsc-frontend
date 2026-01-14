@@ -167,15 +167,22 @@ export function WeightingManager() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Thiết lập Tỷ trọng</h1>
-          <p className="text-muted-foreground">
-            Phân bổ tỷ trọng cho các phương diện và mục tiêu
-          </p>
+      {/* Header with gradient icon */}
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg">
+            <Scale className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">
+              Thiết lập Tỷ trọng
+            </h1>
+            <p className="text-muted-foreground mt-0.5">
+              Phân bổ tỷ trọng cho các phương diện và mục tiêu
+            </p>
+          </div>
         </div>
-        <Button onClick={handleSave} disabled={saving || !isPerspectiveValid}>
+        <Button onClick={handleSave} disabled={saving || !isPerspectiveValid} className="shadow-sm">
           <Save className="h-4 w-4 mr-2" />
           {saving ? 'Đang lưu...' : 'Lưu tỷ trọng'}
         </Button>

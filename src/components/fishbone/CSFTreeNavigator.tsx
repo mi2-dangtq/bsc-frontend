@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ChevronRight, 
   ChevronDown, 
@@ -11,21 +11,40 @@ import {
   Users,
   Settings,
   GraduationCap,
-  FolderTree
+  FolderTree,
+  Search,
+  Loader2
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { perspectivesAPI, objectivesAPI, csfAPI } from '@/lib/api';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-// Perspective colors
-const PERSPECTIVE_COLORS: Record<string, string> = {
-  'Tài chính': '#f59e0b',
-  'Khách hàng': '#3b82f6',
-  'Quy trình nội bộ': '#10b981',
-  'Học hỏi & Phát triển': '#8b5cf6',
+// Perspective colors with gradients
+const PERSPECTIVE_STYLES: Record<string, { color: string; gradient: string; bg: string }> = {
+  'Tài chính': { 
+    color: '#f59e0b', 
+    gradient: 'from-amber-400 to-orange-500',
+    bg: 'bg-amber-50 dark:bg-amber-950/30'
+  },
+  'Khách hàng': { 
+    color: '#3b82f6', 
+    gradient: 'from-blue-400 to-indigo-500',
+    bg: 'bg-blue-50 dark:bg-blue-950/30'
+  },
+  'Quy trình nội bộ': { 
+    color: '#10b981', 
+    gradient: 'from-emerald-400 to-teal-500',
+    bg: 'bg-emerald-50 dark:bg-emerald-950/30'
+  },
+  'Học hỏi & Phát triển': { 
+    color: '#8b5cf6', 
+    gradient: 'from-purple-400 to-violet-500',
+    bg: 'bg-purple-50 dark:bg-purple-950/30'
+  },
 };
 
-// Map perspective names to Lucide icons
 const getPerspectiveIcon = (name: string, color: string) => {
   const iconClass = "h-4 w-4 flex-shrink-0";
   switch (name) {
@@ -55,7 +74,6 @@ export interface TreeNode {
   parentId?: string;
   kpiCount?: number;
   csfCount?: number;
-  // For KPI nodes
   unit?: string;
   target?: number;
 }
@@ -76,22 +94,22 @@ export function CSFTreeNavigator({
   const [treeData, setTreeData] = useState<TreeNode[]>([]);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loadingCSFs, setLoadingCSFs] = useState<Set<string>>(new Set());
 
   // Fetch tree data
   useEffect(() => {
     const fetchTreeData = async () => {
       setLoading(true);
       try {
-        // Fetch perspectives and objectives
         const [perspectives, objectives] = await Promise.all([
           perspectivesAPI.getAll(),
           objectivesAPI.getAll({ year, departmentId }),
         ]);
 
-        // Build tree structure
         const tree: TreeNode[] = perspectives.map(p => {
           const perspectiveObjectives = objectives.filter(o => o.perspectiveId === p.id);
-          const color = PERSPECTIVE_COLORS[p.name] || '#6b7280';
+          const style = PERSPECTIVE_STYLES[p.name] || { color: '#6b7280', gradient: 'from-gray-400 to-gray-500', bg: 'bg-gray-50' };
 
           return {
             id: `perspective-${p.id}`,
@@ -99,24 +117,22 @@ export function CSFTreeNavigator({
             type: 'perspective' as TreeNodeType,
             name: p.name,
             weight: p.weightDefault ? Number(p.weightDefault) : undefined,
-            color,
+            color: style.color,
             children: perspectiveObjectives.map(o => ({
               id: `objective-${o.id}`,
               dbId: o.id,
               type: 'objective' as TreeNodeType,
               name: o.name,
               weight: o.weight ? Number(o.weight) : undefined,
-              color,
+              color: style.color,
               parentId: `perspective-${p.id}`,
               csfCount: o.csfs?.length || 0,
-              children: [], // CSFs loaded on expand
+              children: [],
             })),
           };
         });
 
         setTreeData(tree);
-        
-        // Auto-expand perspectives
         setExpandedNodes(new Set(tree.map(p => p.id)));
       } catch (error) {
         console.error('Error fetching tree data:', error);
@@ -132,10 +148,10 @@ export function CSFTreeNavigator({
   const loadCSFsForObjective = async (objectiveNode: TreeNode) => {
     if (!objectiveNode.dbId) return;
 
+    setLoadingCSFs(prev => new Set(prev).add(objectiveNode.id));
     try {
       const csfs = await csfAPI.getAll(objectiveNode.dbId);
 
-      // Update tree with CSFs
       setTreeData(prev => {
         const updateChildren = (nodes: TreeNode[]): TreeNode[] => {
           return nodes.map(node => {
@@ -175,6 +191,12 @@ export function CSFTreeNavigator({
       });
     } catch (error) {
       console.error('Error loading CSFs:', error);
+    } finally {
+      setLoadingCSFs(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(objectiveNode.id);
+        return newSet;
+      });
     }
   };
 
@@ -186,7 +208,6 @@ export function CSFTreeNavigator({
     } else {
       newExpanded.add(node.id);
       
-      // Load CSFs if expanding objective
       if (node.type === 'objective' && (!node.children || node.children.length === 0)) {
         await loadCSFsForObjective(node);
       }
@@ -195,11 +216,33 @@ export function CSFTreeNavigator({
     setExpandedNodes(newExpanded);
   };
 
-  const renderNode = (node: TreeNode, depth: number = 0, isLast: boolean = false, parentLines: boolean[] = []) => {
+  // Filter tree by search
+  const filterTree = (nodes: TreeNode[], query: string): TreeNode[] => {
+    if (!query) return nodes;
+    
+    return nodes.reduce<TreeNode[]>((acc, node) => {
+      const matchesQuery = node.name.toLowerCase().includes(query.toLowerCase());
+      const filteredChildren = node.children ? filterTree(node.children, query) : [];
+      
+      if (matchesQuery || filteredChildren.length > 0) {
+        acc.push({
+          ...node,
+          children: filteredChildren.length > 0 ? filteredChildren : node.children,
+        });
+      }
+      return acc;
+    }, []);
+  };
+
+  const filteredTreeData = filterTree(treeData, searchQuery);
+
+  const renderNode = (node: TreeNode, depth: number = 0) => {
     const isExpanded = expandedNodes.has(node.id);
     const isSelected = selectedNode?.id === node.id;
     const hasChildren = node.children && node.children.length > 0;
     const canExpand = node.type !== 'kpi' && (hasChildren || node.type === 'objective');
+    const isLoadingCSF = loadingCSFs.has(node.id);
+    const style = Object.values(PERSPECTIVE_STYLES).find(s => s.color === node.color);
 
     const getIcon = () => {
       const iconClass = "h-4 w-4 flex-shrink-0";
@@ -215,136 +258,146 @@ export function CSFTreeNavigator({
       }
     };
 
-    // Calculate indentation (for tree lines)
-    const indentWidth = 20; // px per level
+    const getTypeLabel = () => {
+      switch (node.type) {
+        case 'perspective': return 'Phương diện';
+        case 'objective': return 'Mục tiêu';
+        case 'csf': return 'CSF';
+        case 'kpi': return 'KPI';
+      }
+    };
 
     return (
-      <div key={node.id} className="relative">
-        {/* Tree connecting lines */}
-        {depth > 0 && (
-          <>
-            {/* Vertical lines from parent levels */}
-            {parentLines.map((showLine, index) => (
-              showLine && (
-                <div
-                  key={`vline-${index}`}
-                  className="absolute border-l border-muted-foreground/30"
-                  style={{
-                    left: `${(index + 1) * indentWidth + 2}px`,
-                    top: 0,
-                    bottom: 0,
-                  }}
-                />
-              )
-            ))}
-            {/* Horizontal line to this node */}
-            <div
-              className="absolute border-t border-muted-foreground/30"
-              style={{
-                left: `${depth * indentWidth + 2}px`,
-                top: '18px',
-                width: `${indentWidth - 6}px`,
-              }}
-            />
-            {/* Vertical line segment for this level */}
-            <div
-              className="absolute border-l border-muted-foreground/30"
-              style={{
-                left: `${depth * indentWidth + 2}px`,
-                top: 0,
-                height: isLast ? '18px' : '100%',
-              }}
-            />
-          </>
-        )}
-
-        <div
-          className={cn(
-            'flex items-center gap-2 py-2 px-3 rounded-lg cursor-pointer transition-all duration-150',
-            'hover:bg-muted/60',
-            isSelected && 'bg-primary/10 ring-1 ring-primary/40 shadow-sm'
-          )}
-          style={{ 
-            marginLeft: `${depth * indentWidth}px`,
-            marginRight: '8px',
-          }}
-          onClick={() => onSelectNode(node)}
-        >
-          {/* Expand/collapse button */}
-          {canExpand ? (
-            <button
-              className="p-0.5 hover:bg-muted rounded-md transition-colors flex-shrink-0"
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleExpand(node);
-              }}
-            >
-              {isExpanded ? (
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-              ) : (
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              )}
-            </button>
-          ) : (
-            <div className="w-5 flex-shrink-0" />
-          )}
-
-          {/* Icon */}
-          {getIcon()}
-
-          {/* Name */}
-          <span className={cn(
-            'flex-1 text-sm truncate leading-tight',
-            node.type === 'perspective' && 'font-semibold text-foreground',
-            node.type === 'objective' && 'font-medium text-foreground/90',
-            node.type === 'csf' && 'text-foreground/80',
-            node.type === 'kpi' && 'text-muted-foreground'
-          )}>
-            {node.name}
-          </span>
-
-          {/* Badges */}
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            {node.weight !== undefined && node.weight > 0 && (
-              <Badge 
-                variant="outline" 
-                className="text-[10px] h-5 px-1.5 font-medium"
+      <TooltipProvider key={node.id}>
+        <div className="relative">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div
+                className={cn(
+                  'flex items-center gap-2 py-2.5 px-3 rounded-lg cursor-pointer transition-all duration-200',
+                  'hover:bg-slate-100 dark:hover:bg-slate-800',
+                  isSelected && 'bg-gradient-to-r ring-1 ring-offset-1',
+                  isSelected && style?.bg,
+                  isSelected && 'ring-slate-300 dark:ring-slate-600',
+                  node.type === 'perspective' && 'mt-1 first:mt-0'
+                )}
                 style={{ 
-                  borderColor: node.color,
-                  color: node.color,
-                  backgroundColor: `${node.color}15`
+                  marginLeft: `${depth * 16}px`,
                 }}
+                onClick={() => onSelectNode(node)}
               >
-                {node.weight}%
-              </Badge>
-            )}
+                {/* Expand/collapse button */}
+                {canExpand ? (
+                  <button
+                    className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors flex-shrink-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleExpand(node);
+                    }}
+                  >
+                    {isLoadingCSF ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    ) : isExpanded ? (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </button>
+                ) : (
+                  <div className="w-6 flex-shrink-0" />
+                )}
 
-            {node.type === 'objective' && node.csfCount !== undefined && (
-              <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-medium">
-                {node.csfCount} CSF
-              </Badge>
-            )}
+                {/* Icon with colored background for perspectives */}
+                {node.type === 'perspective' ? (
+                  <div 
+                    className={cn(
+                      'p-2 rounded-lg bg-gradient-to-br shadow-md',
+                      style?.gradient
+                    )}
+                    style={{
+                      boxShadow: `0 4px 12px ${node.color}40`
+                    }}
+                  >
+                    {/* White icon for contrast */}
+                    {node.name === 'Tài chính' && <TrendingUp className="h-4 w-4 text-white drop-shadow-sm" />}
+                    {node.name === 'Khách hàng' && <Users className="h-4 w-4 text-white drop-shadow-sm" />}
+                    {node.name === 'Quy trình nội bộ' && <Settings className="h-4 w-4 text-white drop-shadow-sm" />}
+                    {node.name === 'Học hỏi & Phát triển' && <GraduationCap className="h-4 w-4 text-white drop-shadow-sm" />}
+                  </div>
+                ) : (
+                  getIcon()
+                )}
 
-            {node.type === 'csf' && node.kpiCount !== undefined && (
-              <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-medium">
-                {node.kpiCount} KPI
-              </Badge>
-            )}
-          </div>
+                {/* Name */}
+                <span className={cn(
+                  'flex-1 text-sm truncate leading-tight',
+                  node.type === 'perspective' && 'font-bold text-foreground',
+                  node.type === 'objective' && 'font-semibold text-foreground/90',
+                  node.type === 'csf' && 'font-medium text-foreground/80',
+                  node.type === 'kpi' && 'text-muted-foreground'
+                )}>
+                  {node.name}
+                </span>
+
+                {/* Badges */}
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {node.weight !== undefined && node.weight > 0 && (
+                    <Badge 
+                      variant="outline" 
+                      className="text-[10px] h-5 px-1.5 font-semibold"
+                      style={{ 
+                        borderColor: node.color,
+                        color: node.color,
+                        backgroundColor: `${node.color}15`
+                      }}
+                    >
+                      {node.weight}%
+                    </Badge>
+                  )}
+
+                  {node.type === 'objective' && node.csfCount !== undefined && (
+                    <Badge 
+                      variant="secondary" 
+                      className="text-[10px] h-5 px-1.5 font-medium bg-slate-200 dark:bg-slate-700"
+                    >
+                      {node.csfCount} CSF
+                    </Badge>
+                  )}
+
+                  {node.type === 'csf' && node.kpiCount !== undefined && (
+                    <Badge 
+                      variant="secondary" 
+                      className="text-[10px] h-5 px-1.5 font-medium bg-slate-200 dark:bg-slate-700"
+                    >
+                      {node.kpiCount} KPI
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="max-w-xs">
+              <p className="font-medium">{getTypeLabel()}</p>
+              <p className="text-xs text-muted-foreground">{node.name}</p>
+            </TooltipContent>
+          </Tooltip>
+
+          {/* Children */}
+          {isExpanded && hasChildren && (
+            <div className="relative">
+              {/* Vertical line */}
+              <div 
+                className="absolute left-0 border-l-2 border-slate-200 dark:border-slate-700"
+                style={{ 
+                  left: `${depth * 16 + 16}px`,
+                  top: 0,
+                  bottom: 8
+                }}
+              />
+              {node.children!.map((child) => renderNode(child, depth + 1))}
+            </div>
+          )}
         </div>
-
-        {/* Children with tree lines */}
-        {isExpanded && hasChildren && (
-          <div className="relative">
-            {node.children!.map((child, index) => {
-              const isLastChild = index === node.children!.length - 1;
-              // Track which parent levels need vertical lines
-              const newParentLines = depth === 0 ? [] : [...parentLines, !isLast];
-              return renderNode(child, depth + 1, isLastChild, newParentLines);
-            })}
-          </div>
-        )}
-      </div>
+      </TooltipProvider>
     );
   };
 
@@ -352,9 +405,9 @@ export function CSFTreeNavigator({
     return (
       <div className="p-4 space-y-3">
         {[1, 2, 3, 4].map(i => (
-          <div key={i} className="flex items-center gap-3">
-            <div className="h-4 w-4 bg-muted/50 rounded animate-pulse" />
-            <div className="h-6 flex-1 bg-muted/50 rounded animate-pulse" />
+          <div key={i} className="flex items-center gap-3 animate-pulse">
+            <div className="h-8 w-8 bg-slate-200 dark:bg-slate-700 rounded-lg" />
+            <div className="h-5 flex-1 bg-slate-200 dark:bg-slate-700 rounded" />
           </div>
         ))}
       </div>
@@ -362,8 +415,31 @@ export function CSFTreeNavigator({
   }
 
   return (
-    <div className="py-3 px-2">
-      {treeData.map((node, index) => renderNode(node, 0, index === treeData.length - 1, []))}
+    <div className="flex flex-col h-full">
+      {/* Search */}
+      <div className="p-3 border-b">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Tìm kiếm..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 h-9 bg-slate-50 dark:bg-slate-900 border-slate-200"
+          />
+        </div>
+      </div>
+      
+      {/* Tree */}
+      <div className="py-2 px-2">
+        {filteredTreeData.length === 0 && searchQuery ? (
+          <div className="p-4 text-center text-sm text-muted-foreground">
+            Không tìm thấy kết quả cho &ldquo;{searchQuery}&rdquo;
+          </div>
+        ) : (
+          filteredTreeData.map((node) => renderNode(node, 0))
+        )}
+      </div>
     </div>
   );
 }
+

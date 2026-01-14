@@ -15,7 +15,6 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from '@/components/ui/chart';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 interface PerspectiveData {
   name: string;
@@ -28,6 +27,14 @@ interface PerspectiveBarChartProps {
   data: PerspectiveData[];
 }
 
+// Enhanced colors for each perspective
+const perspectiveColors: Record<string, string> = {
+  'Tài chính': '#10b981',           // Emerald
+  'Khách hàng': '#3b82f6',          // Blue
+  'Quy trình nội bộ': '#f59e0b',    // Amber
+  'Học hỏi & Phát triển': '#8b5cf6', // Violet
+};
+
 const chartConfig = {
   score: {
     label: 'Điểm số',
@@ -39,50 +46,71 @@ export function PerspectiveBarChart({ data }: PerspectiveBarChartProps) {
     name: p.name,
     nameEn: p.nameEn,
     score: p.score,
-    fill: p.color || '#888',
+    fill: perspectiveColors[p.name] || p.color || '#64748b',
   }));
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle>Điểm số theo Phương diện</CardTitle>
-        <CardDescription>Hiệu suất từng phương diện trong kỳ</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig} className="h-[250px] w-full">
-          <BarChart
-            data={chartData}
-            layout="vertical"
-            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+    <div className="p-6">
+      <div className="mb-4">
+        <h3 className="font-semibold text-lg">Điểm số theo Phương diện</h3>
+        <p className="text-sm text-muted-foreground">Hiệu suất từng phương diện trong kỳ</p>
+      </div>
+      <ChartContainer config={chartConfig} className="h-[250px] w-full">
+        <BarChart
+          data={chartData}
+          layout="vertical"
+          margin={{ top: 5, right: 40, left: 0, bottom: 5 }}
+        >
+          <defs>
+            {chartData.map((entry, index) => (
+              <linearGradient key={`gradient-${index}`} id={`barGradient-${index}`} x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor={entry.fill} stopOpacity={0.9} />
+                <stop offset="100%" stopColor={entry.fill} stopOpacity={0.6} />
+              </linearGradient>
+            ))}
+          </defs>
+          <CartesianGrid 
+            strokeDasharray="3 3" 
+            horizontal={true} 
+            vertical={false} 
+            stroke="#e2e8f0"
+          />
+          <XAxis 
+            type="number" 
+            domain={[0, 100]} 
+            tickFormatter={(v) => `${v}%`}
+            tick={{ fontSize: 11, fill: '#64748b' }}
+            axisLine={{ stroke: '#e2e8f0' }}
+          />
+          <YAxis
+            dataKey="name"
+            type="category"
+            tickLine={false}
+            axisLine={false}
+            width={130}
+            tick={{ fontSize: 12, fill: '#374151' }}
+          />
+          <ChartTooltip
+            content={<ChartTooltipContent />}
+            formatter={(value) => [`${value}%`, 'Điểm số']}
+          />
+          <Bar 
+            dataKey="score" 
+            radius={[0, 8, 8, 0]}
+            barSize={28}
           >
-            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-            <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
-            <YAxis
-              dataKey="name"
-              type="category"
-              tickLine={false}
-              axisLine={false}
-              width={120}
-              tick={{ fontSize: 12 }}
+            {chartData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={`url(#barGradient-${index})`} />
+            ))}
+            <LabelList
+              dataKey="score"
+              position="right"
+              formatter={(value: number) => `${value}%`}
+              style={{ fontSize: 12, fontWeight: 600, fill: '#374151' }}
             />
-            <ChartTooltip
-              content={<ChartTooltipContent />}
-              formatter={(value) => [`${value}%`, 'Điểm số']}
-            />
-            <Bar dataKey="score" radius={[0, 4, 4, 0]}>
-              {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.fill} />
-              ))}
-              <LabelList
-                dataKey="score"
-                position="right"
-                formatter={(value: number) => `${value}%`}
-                className="fill-foreground font-medium"
-              />
-            </Bar>
-          </BarChart>
-        </ChartContainer>
-      </CardContent>
-    </Card>
+          </Bar>
+        </BarChart>
+      </ChartContainer>
+    </div>
   );
 }

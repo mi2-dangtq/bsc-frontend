@@ -3,7 +3,7 @@
 import { memo } from 'react';
 import { type NodeProps } from '@xyflow/react';
 import { Button } from '@/components/ui/button';
-import { Plus, DollarSign, Users, Settings, GraduationCap } from 'lucide-react';
+import { Plus, TrendingUp, Users, Settings, GraduationCap } from 'lucide-react';
 
 export interface LaneNodeData extends Record<string, unknown> {
   label: string;
@@ -13,18 +13,22 @@ export interface LaneNodeData extends Record<string, unknown> {
   onAddObjective?: () => void;
 }
 
-// Icons for each perspective (by sortOrder)
-const PERSPECTIVE_ICONS: Record<number, React.ComponentType<{ className?: string }>> = {
-  1: DollarSign,    // Tài chính
-  2: Users,         // Khách hàng
-  3: Settings,      // Quy trình nội bộ
-  4: GraduationCap, // Học hỏi & Phát triển
+// Perspective gradient configurations
+const PERSPECTIVE_CONFIG: Record<number, { 
+  Icon: React.ComponentType<{ className?: string }>; 
+  gradient: string;
+}> = {
+  1: { Icon: TrendingUp, gradient: 'from-amber-400 to-orange-500' },      // Tài chính
+  2: { Icon: Users, gradient: 'from-blue-400 to-indigo-500' },            // Khách hàng
+  3: { Icon: Settings, gradient: 'from-emerald-400 to-teal-500' },        // Quy trình nội bộ
+  4: { Icon: GraduationCap, gradient: 'from-purple-400 to-violet-500' },  // Học hỏi & Phát triển
 };
 
 function LaneNodeComponent(props: NodeProps) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data = props.data as any as LaneNodeData;
-  const Icon = PERSPECTIVE_ICONS[data.sortOrder] || Settings;
+  const config = PERSPECTIVE_CONFIG[data.sortOrder] || { Icon: Settings, gradient: 'from-slate-400 to-slate-500' };
+  const Icon = config.Icon;
 
   return (
     <div
@@ -41,7 +45,7 @@ function LaneNodeComponent(props: NodeProps) {
         }}
       />
 
-      {/* Lane Label - Modern design */}
+      {/* Lane Label - Modern design with gradient icon */}
       <div
         className="absolute left-0 top-0 bottom-0 w-[180px] flex flex-col justify-center px-4 pointer-events-auto"
         style={{
@@ -51,22 +55,20 @@ function LaneNodeComponent(props: NodeProps) {
       >
         {/* Perspective header */}
         <div className="flex items-start gap-3 mb-3">
-          {/* Icon container */}
+          {/* Icon container with gradient - WHITE ICON for contrast */}
           <div 
-            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm"
+            className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md bg-gradient-to-br ${config.gradient}`}
             style={{ 
-              background: `linear-gradient(135deg, ${data.color}25, ${data.color}15)`,
-              border: `1px solid ${data.color}30`,
-              color: data.color,
+              boxShadow: `0 4px 12px ${data.color}40`,
             }}
           >
-            <Icon className="w-4 h-4" />
+            <Icon className="w-5 h-5 text-white drop-shadow-sm" />
           </div>
           
           {/* Labels */}
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 pt-0.5">
             <p 
-              className="text-sm font-semibold leading-tight truncate"
+              className="text-sm font-bold leading-tight truncate"
               style={{ color: data.color }}
             >
               {data.label}
@@ -83,7 +85,7 @@ function LaneNodeComponent(props: NodeProps) {
           size="sm"
           className="w-full justify-start text-xs h-8 px-2 rounded-lg
             text-slate-500 hover:text-slate-700 
-            bg-white/50 hover:bg-white/80 
+            bg-white/60 hover:bg-white/90 
             border border-slate-200/60 hover:border-slate-300
             shadow-sm hover:shadow
             transition-all duration-200"
@@ -112,4 +114,3 @@ function LaneNodeComponent(props: NodeProps) {
 }
 
 export const LaneNode = memo(LaneNodeComponent);
-

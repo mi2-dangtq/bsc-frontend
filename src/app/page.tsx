@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import {
   Target,
   TrendingUp,
@@ -17,6 +18,10 @@ import {
   CheckCircle2,
   Clock,
   Loader2,
+  DollarSign,
+  Users,
+  Settings,
+  GraduationCap,
 } from 'lucide-react';
 import {
   PerspectiveRadarChart,
@@ -37,7 +42,30 @@ interface PerspectiveStat {
   trend: 'up' | 'down';
 }
 
-// Recent activities (still mock - TODO: implement activity log API)
+// Perspective icons mapping
+const perspectiveIcons: Record<number, React.ElementType> = {
+  1: DollarSign,    // Financial
+  2: Users,         // Customer
+  3: Settings,      // Process
+  4: GraduationCap, // Learning
+};
+
+// Enhanced perspective colors with gradients
+const perspectiveGradients: Record<number, string> = {
+  1: 'from-emerald-500 to-green-600',     // Financial - Green
+  2: 'from-blue-500 to-indigo-600',       // Customer - Blue
+  3: 'from-amber-500 to-orange-600',      // Process - Amber
+  4: 'from-violet-500 to-purple-600',     // Learning - Purple
+};
+
+const perspectiveBgGradients: Record<number, string> = {
+  1: 'from-emerald-50 to-green-100 dark:from-emerald-950/30 dark:to-green-900/30',
+  2: 'from-blue-50 to-indigo-100 dark:from-blue-950/30 dark:to-indigo-900/30',
+  3: 'from-amber-50 to-orange-100 dark:from-amber-950/30 dark:to-orange-900/30',
+  4: 'from-violet-50 to-purple-100 dark:from-violet-950/30 dark:to-purple-900/30',
+};
+
+// Recent activities
 const recentActivities = [
   {
     action: 'Cập nhật KPI',
@@ -70,17 +98,24 @@ const recentActivities = [
 ];
 
 function getScoreColor(score: number) {
-  if (score >= 90) return 'text-green-600';
+  if (score >= 90) return 'text-emerald-600';
   if (score >= 70) return 'text-blue-600';
   if (score >= 50) return 'text-amber-600';
   return 'text-red-600';
 }
 
 function getScoreBadge(score: number) {
-  if (score >= 90) return { label: 'Xuất sắc', variant: 'default' as const };
-  if (score >= 70) return { label: 'Đạt', variant: 'secondary' as const };
-  if (score >= 50) return { label: 'Cần cải thiện', variant: 'outline' as const };
-  return { label: 'Chưa đạt', variant: 'destructive' as const };
+  if (score >= 90) return { label: 'Xuất sắc', variant: 'default' as const, className: 'bg-emerald-500 hover:bg-emerald-600' };
+  if (score >= 70) return { label: 'Đạt', variant: 'secondary' as const, className: 'bg-blue-500 text-white hover:bg-blue-600' };
+  if (score >= 50) return { label: 'Cần cải thiện', variant: 'outline' as const, className: 'border-amber-500 text-amber-600' };
+  return { label: 'Chưa đạt', variant: 'destructive' as const, className: '' };
+}
+
+function getProgressColor(score: number) {
+  if (score >= 90) return 'bg-emerald-500';
+  if (score >= 70) return 'bg-blue-500';
+  if (score >= 50) return 'bg-amber-500';
+  return 'bg-red-500';
 }
 
 export default function DashboardPage() {
@@ -123,40 +158,53 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <div className="flex flex-col items-center gap-3">
+          <div className="relative">
+            <div className="w-16 h-16 border-4 border-blue-200 rounded-full animate-pulse" />
+            <Loader2 className="absolute inset-0 m-auto h-8 w-8 animate-spin text-blue-600" />
+          </div>
+          <p className="text-sm text-muted-foreground">Đang tải dữ liệu...</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header with gradient accent */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Tổng quan BSC</h2>
-          <p className="text-muted-foreground">
-            Kỳ đánh giá: Q1/2026 | Dữ liệu realtime từ hệ thống
+          <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">
+            Tổng quan BSC
+          </h2>
+          <p className="text-muted-foreground mt-1">
+            Kỳ đánh giá: <span className="font-semibold text-blue-600">Q1/2026</span> | Dữ liệu realtime từ hệ thống
           </p>
         </div>
+        <Badge variant="outline" className="text-xs px-3 py-1 border-emerald-500 text-emerald-600 bg-emerald-50">
+          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse mr-2" />
+          Live
+        </Badge>
       </div>
 
       {/* Top Section: Score Overview + Radar Chart */}
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Overall Score Card with Gauge */}
-        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Điểm tổng hợp BSC</CardTitle>
-            <CardDescription>Trung bình 4 phương diện</CardDescription>
+        {/* Overall Score Card with enhanced styling */}
+        <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+          <CardHeader className="pb-2 relative">
+            <CardTitle className="text-lg text-slate-200">Điểm tổng hợp BSC</CardTitle>
+            <CardDescription className="text-slate-400">Trung bình 4 phương diện</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col items-center justify-center">
+          <CardContent className="flex flex-col items-center justify-center relative">
             <OverallScoreGauge score={totalScore} label="Điểm BSC" />
             <div className="mt-4 flex items-center gap-4">
               {totalScore > 0 && (
-                <Badge {...getScoreBadge(totalScore)} className="text-sm px-3 py-1">
+                <Badge className={`text-sm px-3 py-1 ${getScoreBadge(totalScore).className}`}>
                   {getScoreBadge(totalScore).label}
                 </Badge>
               )}
-              <div className="flex items-center gap-1 text-green-600">
+              <div className="flex items-center gap-1 text-emerald-400">
                 <TrendingUp className="h-4 w-4" />
                 <span className="text-sm font-medium">+5% so với kỳ trước</span>
               </div>
@@ -164,122 +212,175 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Radar Chart */}
-        <PerspectiveRadarChart data={chartData} />
+        {/* Radar Chart with enhanced card */}
+        <Card className="border shadow-lg">
+          <PerspectiveRadarChart data={chartData} />
+        </Card>
+      </div>
+
+      {/* Perspective Cards - Enhanced with gradients */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <div className="w-1 h-5 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full" />
+          Chi tiết theo Phương diện
+        </h3>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {stats.map((perspective) => {
+            const Icon = perspectiveIcons[perspective.id] || Target;
+            const bgGradient = perspectiveBgGradients[perspective.id] || '';
+            const iconGradient = perspectiveGradients[perspective.id] || 'from-slate-500 to-slate-600';
+            
+            return (
+              <Card 
+                key={perspective.id} 
+                className={`relative overflow-hidden border-0 shadow-md hover:shadow-xl transition-all duration-300 bg-gradient-to-br ${bgGradient}`}
+              >
+                {/* Color accent bar */}
+                <div
+                  className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-lg"
+                  style={{ backgroundColor: perspective.color || '#888' }}
+                />
+                
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <div className={`p-2 rounded-lg bg-gradient-to-br ${iconGradient} shadow-lg`}>
+                      <Icon className="h-4 w-4 text-white" />
+                    </div>
+                    {perspective.trend === 'up' ? (
+                      <div className="flex items-center gap-1 text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full text-xs">
+                        <TrendingUp className="h-3 w-3" />
+                        <span>Tăng</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 text-red-600 bg-red-100 px-2 py-0.5 rounded-full text-xs">
+                        <TrendingDown className="h-3 w-3" />
+                        <span>Giảm</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-2">
+                    <p className="text-xs text-muted-foreground">{perspective.nameEn}</p>
+                    <CardTitle className="text-base mt-0.5">{perspective.name}</CardTitle>
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="pt-0">
+                  <div className="flex items-baseline gap-2 mb-2">
+                    <span className={`text-3xl font-bold ${getScoreColor(perspective.score)}`}>
+                      {perspective.score > 0 ? `${perspective.score}%` : 'N/A'}
+                    </span>
+                    <span className="text-xs text-muted-foreground">/ 100%</span>
+                  </div>
+                  
+                  {/* Progress bar */}
+                  <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden mb-3">
+                    <div 
+                      className={`h-full ${getProgressColor(perspective.score)} rounded-full transition-all duration-500`}
+                      style={{ width: `${perspective.score}%` }}
+                    />
+                  </div>
+                  
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{perspective.objectiveCount} mục tiêu</span>
+                    <span>{perspective.kpiCount} KPIs</span>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       </div>
 
       {/* Charts Section */}
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Bar Chart by Perspective */}
-        <PerspectiveBarChart data={chartData} />
+        {/* Bar Chart */}
+        <Card className="shadow-lg border">
+          <PerspectiveBarChart data={chartData} />
+        </Card>
 
-        {/* Stats Grid */}
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-          <Card>
+        {/* Stats Grid with enhanced colors */}
+        <div className="grid gap-4 grid-cols-2">
+          <Card className="border-0 shadow-md bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950/30 dark:to-indigo-900/30">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Mục tiêu chiến lược</CardTitle>
-              <Target className="h-4 w-4 text-muted-foreground" />
+              <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg">
+                <Target className="h-4 w-4 text-white" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{totalObjectives}</div>
-              <p className="text-xs text-muted-foreground">
-                Đang active trong hệ thống
-              </p>
+              <div className="text-4xl font-bold text-blue-700 dark:text-blue-400">{totalObjectives}</div>
+              <p className="text-xs text-muted-foreground mt-1">Đang active trong hệ thống</p>
             </CardContent>
           </Card>
-          <Card>
+          
+          <Card className="border-0 shadow-md bg-gradient-to-br from-emerald-50 to-green-100 dark:from-emerald-950/30 dark:to-green-900/30">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">KPIs đang theo dõi</CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">KPIs theo dõi</CardTitle>
+              <div className="p-2 rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 shadow-lg">
+                <CheckCircle2 className="h-4 w-4 text-white" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{totalKpis}</div>
-              <p className="text-xs text-muted-foreground">
-                Được phân bổ từ CSF cấp công ty
-              </p>
+              <div className="text-4xl font-bold text-emerald-700 dark:text-emerald-400">{totalKpis}</div>
+              <p className="text-xs text-muted-foreground mt-1">Từ CSF cấp công ty</p>
             </CardContent>
           </Card>
-          <Card className="sm:col-span-2 xl:col-span-2">
+          
+          <Card className="col-span-2 border-0 shadow-md bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-950/30 dark:to-orange-900/30">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Cần chú ý</CardTitle>
-              <AlertCircle className="h-4 w-4 text-amber-500" />
+              <div className="p-2 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg">
+                <AlertCircle className="h-4 w-4 text-white" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-amber-600">
+              <div className="text-4xl font-bold text-amber-700 dark:text-amber-400">
                 {stats.filter((s) => s.score > 0 && s.score < 70).length}
               </div>
-              <p className="text-xs text-muted-foreground">
-                Phương diện dưới ngưỡng chấp nhận (70%)
+              <p className="text-xs text-muted-foreground mt-1">
+                Phương diện dưới ngưỡng 70%
               </p>
             </CardContent>
           </Card>
         </div>
       </div>
 
-      {/* Perspective Cards */}
-      <div>
-        <h3 className="text-lg font-semibold mb-4">Chi tiết theo Phương diện</h3>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {stats.map((perspective) => (
-            <Card key={perspective.id} className="relative overflow-hidden">
-              <div
-                className="absolute left-0 top-0 bottom-0 w-1"
-                style={{ backgroundColor: perspective.color || '#888' }}
-              />
-              <CardHeader className="pb-2">
-                <CardDescription className="flex items-center justify-between">
-                  <span>{perspective.nameEn}</span>
-                  {perspective.trend === 'up' ? (
-                    <TrendingUp className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <TrendingDown className="h-4 w-4 text-red-500" />
-                  )}
-                </CardDescription>
-                <CardTitle className="text-lg">{perspective.name}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-baseline gap-2">
-                  <span className={`text-3xl font-bold ${getScoreColor(perspective.score)}`}>
-                    {perspective.score > 0 ? `${perspective.score}%` : 'N/A'}
-                  </span>
-                </div>
-                <div className="mt-2 flex gap-3 text-xs text-muted-foreground">
-                  <span>{perspective.objectiveCount} mục tiêu</span>
-                  <span>•</span>
-                  <span>{perspective.kpiCount} KPIs</span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-
-      {/* Recent Activity */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Hoạt động gần đây</CardTitle>
-          <CardDescription>Các cập nhật mới nhất trong hệ thống</CardDescription>
+      {/* Recent Activity with enhanced styling */}
+      <Card className="shadow-lg border">
+        <CardHeader className="border-b bg-slate-50 dark:bg-slate-900/50">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg">
+              <Clock className="h-4 w-4 text-white" />
+            </div>
+            <div>
+              <CardTitle>Hoạt động gần đây</CardTitle>
+              <CardDescription>Các cập nhật mới nhất trong hệ thống</CardDescription>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
+        <CardContent className="pt-4">
+          <div className="space-y-3">
             {recentActivities.map((activity, index) => (
-              <div key={index} className="flex items-center gap-4">
+              <div 
+                key={index} 
+                className="flex items-center gap-4 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors"
+              >
                 <div
-                  className={`h-2 w-2 rounded-full ${
+                  className={`h-3 w-3 rounded-full ring-4 ${
                     activity.status === 'success'
-                      ? 'bg-green-500'
+                      ? 'bg-emerald-500 ring-emerald-100'
                       : activity.status === 'warning'
-                        ? 'bg-amber-500'
-                        : 'bg-red-500'
+                        ? 'bg-amber-500 ring-amber-100'
+                        : 'bg-red-500 ring-red-100'
                   }`}
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">
-                    {activity.action}: <span className="font-normal">{activity.item}</span>
+                    {activity.action}: <span className="font-normal text-muted-foreground">{activity.item}</span>
                   </p>
                   <p className="text-xs text-muted-foreground">{activity.user}</p>
                 </div>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-full">
                   <Clock className="h-3 w-3" />
                   {activity.time}
                 </div>

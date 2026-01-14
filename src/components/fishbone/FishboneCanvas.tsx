@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { RefreshCw, Building2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { RefreshCw, Building2, Layers, Target, FileText, BarChart3 } from 'lucide-react';
 import { CSFEditorDialog } from './CSFEditorDialog';
 import { KPIEditorDialog } from './KPIEditorDialog';
 import { CSFTreeNavigator, type TreeNode } from './CSFTreeNavigator';
@@ -130,22 +131,12 @@ export function FishboneCanvas() {
   const handleSelectNode = async (node: TreeNode) => {
     setSelectedNode(node);
     
-    // If selecting an objective, load its CSFs
     if (node.type === 'objective' && node.dbId) {
       const objective = objectives.find(o => o.dbId === node.dbId);
       if (objective) {
         setCurrentObjective(objective);
         await loadCsfs(node.dbId);
       }
-    }
-    // If selecting a CSF or KPI, load parent objective's CSFs
-    else if ((node.type === 'csf' || node.type === 'kpi') && node.parentId) {
-      // Find parent objective
-      const parentId = node.type === 'kpi' ? 
-        node.parentId.replace('csf-', '') : node.parentId;
-      
-      // Try to find objective in current state or refetch
-      // For now, keep current csfs if same objective
     }
   };
 
@@ -174,7 +165,6 @@ export function FishboneCanvas() {
     if (!currentObjective) return;
     
     if (editingCsf && editingCsf.dbId) {
-      // Update existing
       const success = await api.updateCSF(editingCsf.dbId, data.name);
       if (success) {
         setCsfs(csfs.map(c => 
@@ -182,7 +172,6 @@ export function FishboneCanvas() {
         ));
       }
     } else {
-      // Create new
       const newCsf = await api.createCSF(currentObjective.dbId, data.name);
       if (newCsf) {
         setCsfs([...csfs, {
@@ -230,7 +219,6 @@ export function FishboneCanvas() {
     if (!editingKpiCsfDbId || !currentObjective) return;
 
     if (editingKpi && editingKpi.dbId) {
-      // Edit mode - call API to update
       const success = await api.updateKpiAllocation(editingKpi.dbId, {
         weight: data.weight,
         targetMin: data.targets.targetMin,
@@ -265,7 +253,6 @@ export function FishboneCanvas() {
         }));
       }
     } else {
-      // Create new via API
       const newKpi = await api.addKpiToCSF(
         editingKpiCsfDbId,
         data.kpiLibId,
@@ -290,25 +277,32 @@ export function FishboneCanvas() {
     setEditingKpiCsfDbId(null);
   };
 
+  // Stats for header
+  const totalObjectives = objectives.length;
+  const totalCSFs = selectedNode?.type === 'objective' ? csfs.length : 0;
+  const totalKPIs = csfs.reduce((sum, c) => sum + c.kpis.length, 0);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <RefreshCw className="h-5 w-5 animate-spin" />
-          <span>Đang tải dữ liệu từ server...</span>
+        <div className="flex flex-col items-center gap-3">
+          <div className="p-4 rounded-full bg-gradient-to-br from-indigo-50 to-purple-100 dark:from-indigo-950/50 dark:to-purple-900/50">
+            <RefreshCw className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" />
+          </div>
+          <p className="text-sm text-muted-foreground">Đang tải dữ liệu...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-[calc(100vh-180px)]">
+    <div>
       {/* Department Filter Notice */}
       {!isCompanyView && selectedDepartment && (
-        <Alert className="mb-4">
-          <Building2 className="h-4 w-4" />
+        <Alert className="mb-4 border-blue-200 bg-blue-50/50 dark:bg-blue-950/30">
+          <Building2 className="h-4 w-4 text-blue-600" />
           <AlertDescription className="flex items-center justify-between">
-            <span>
+            <span className="text-blue-700 dark:text-blue-300">
               Đang xem CSF được gán cho <strong>{selectedDepartment.name}</strong>
             </span>
             <DepartmentSelector showLabel={false} />
@@ -316,17 +310,64 @@ export function FishboneCanvas() {
         </Alert>
       )}
 
-      {/* Two-column layout: Tree + Detail */}
-      <div className="flex gap-4 h-full">
-        {/* Left: Tree Navigator */}
-        <Card className="w-[380px] flex-shrink-0 overflow-hidden">
-          <div className="p-3 border-b bg-muted/30">
-            <h3 className="font-semibold text-sm">Cấu trúc phân rã</h3>
-            <p className="text-xs text-muted-foreground">
-              Perspective → Mục tiêu → CSF → KPI
-            </p>
+      {/* Stats Bar */}
+      <div className="grid grid-cols-4 gap-3 mb-4">
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border">
+          <div className="p-2 rounded-lg bg-slate-200 dark:bg-slate-700">
+            <Layers className="h-4 w-4 text-slate-600 dark:text-slate-300" />
           </div>
-          <div className="h-[calc(100%-60px)] overflow-auto">
+          <div>
+            <p className="text-xs text-muted-foreground">Phương diện</p>
+            <p className="text-lg font-bold">4</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 border border-blue-200 dark:border-blue-800">
+          <div className="p-2 rounded-lg bg-blue-200 dark:bg-blue-800">
+            <Target className="h-4 w-4 text-blue-600 dark:text-blue-300" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Mục tiêu</p>
+            <p className="text-lg font-bold text-blue-700 dark:text-blue-400">{totalObjectives}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/30 dark:to-emerald-900/30 border border-emerald-200 dark:border-emerald-800">
+          <div className="p-2 rounded-lg bg-emerald-200 dark:bg-emerald-800">
+            <FileText className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">CSF đang xem</p>
+            <p className="text-lg font-bold text-emerald-700 dark:text-emerald-400">{totalCSFs}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 border border-purple-200 dark:border-purple-800">
+          <div className="p-2 rounded-lg bg-purple-200 dark:bg-purple-800">
+            <BarChart3 className="h-4 w-4 text-purple-600 dark:text-purple-300" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">KPI đang xem</p>
+            <p className="text-lg font-bold text-purple-700 dark:text-purple-400">{totalKPIs}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Two-column layout: Tree + Detail */}
+      <div className="flex gap-4 items-start">
+        {/* Left: Tree Navigator */}
+        <Card className="w-[400px] flex-shrink-0 shadow-lg border-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm">
+          <CardHeader className="py-3 px-4 border-b bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-sm font-semibold">Cấu trúc phân rã</CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Perspective → Mục tiêu → CSF → KPI
+                </p>
+              </div>
+              <Badge variant="outline" className="text-xs">
+                {totalObjectives} mục tiêu
+              </Badge>
+            </div>
+          </CardHeader>
+          <div>
             <CSFTreeNavigator
               selectedNode={selectedNode}
               onSelectNode={handleSelectNode}
@@ -337,9 +378,8 @@ export function FishboneCanvas() {
         </Card>
 
         {/* Right: Detail Panel */}
-        <Card className="flex-1 overflow-hidden">
-          <div className="h-full overflow-auto">
-            <CSFDetailPanel
+        <Card className="flex-1 shadow-lg border-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm">
+          <CSFDetailPanel
               selectedNode={selectedNode}
               csfs={csfs}
               onAddCSF={handleAddCsf}
@@ -348,9 +388,8 @@ export function FishboneCanvas() {
               onAddKPI={handleAddKpi}
               onEditKPI={handleEditKpi}
               onDeleteKPI={handleDeleteKpi}
-              objectiveWeight={currentObjective?.weight}
-            />
-          </div>
+            objectiveWeight={currentObjective?.weight}
+          />
         </Card>
       </div>
 

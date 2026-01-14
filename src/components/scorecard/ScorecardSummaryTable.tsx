@@ -13,17 +13,40 @@ import {
 } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowUp, ArrowDown, FileSpreadsheet, Target, BarChart3 } from 'lucide-react';
+import { 
+  ArrowUp, ArrowDown, FileSpreadsheet, Target, BarChart3, 
+  TrendingUp, Users, Settings, GraduationCap 
+} from 'lucide-react';
 import { scorecardAPI, type ScorecardSummary, type ScorecardPerspective, type ScorecardKPI } from '@/lib/api';
 import { DepartmentSelector } from '@/components/shared/DepartmentSelector';
 import { useDepartment } from '@/contexts';
 
-// Perspective colors
-const PERSPECTIVE_COLORS: Record<string, string> = {
-  'Tài chính': '#f59e0b',
-  'Khách hàng': '#3b82f6',
-  'Quy trình nội bộ': '#10b981',
-  'Học hỏi & Phát triển': '#8b5cf6',
+// Perspective configuration with colors, icons, and gradients
+const PERSPECTIVE_CONFIG: Record<string, { 
+  color: string; 
+  gradient: string;
+  Icon: React.ComponentType<{ className?: string }>;
+}> = {
+  'Tài chính': { 
+    color: '#f59e0b', 
+    gradient: 'from-amber-400 to-orange-500',
+    Icon: TrendingUp 
+  },
+  'Khách hàng': { 
+    color: '#3b82f6', 
+    gradient: 'from-blue-400 to-indigo-500',
+    Icon: Users 
+  },
+  'Quy trình nội bộ': { 
+    color: '#10b981', 
+    gradient: 'from-emerald-400 to-teal-500',
+    Icon: Settings 
+  },
+  'Học hỏi & Phát triển': { 
+    color: '#8b5cf6', 
+    gradient: 'from-purple-400 to-violet-500',
+    Icon: GraduationCap 
+  },
 };
 
 export function ScorecardSummaryTable() {
@@ -99,31 +122,47 @@ export function ScorecardSummaryTable() {
 
   return (
     <div className="space-y-4">
-      {/* Header with filters */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <DepartmentSelector />
-          <Badge variant="outline" className="text-sm">
-            Năm {currentYear}
-          </Badge>
+      {/* Stats Bar with gradient cards */}
+      <div className="grid grid-cols-4 gap-3">
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border">
+          <DepartmentSelector showLabel={false} />
         </div>
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Target className="h-4 w-4" />
-            {data.totals.objectiveCount} Mục tiêu
-          </span>
-          <span className="flex items-center gap-1">
-            <BarChart3 className="h-4 w-4" />
-            {data.totals.kpiCount} KPIs
-          </span>
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-950/30 dark:to-indigo-900/30 border border-indigo-200 dark:border-indigo-800">
+          <div className="p-2 rounded-lg bg-indigo-200 dark:bg-indigo-800">
+            <FileSpreadsheet className="h-4 w-4 text-indigo-600 dark:text-indigo-300" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Năm</p>
+            <p className="text-lg font-bold text-indigo-700 dark:text-indigo-400">{currentYear}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 border border-blue-200 dark:border-blue-800">
+          <div className="p-2 rounded-lg bg-blue-200 dark:bg-blue-800">
+            <Target className="h-4 w-4 text-blue-600 dark:text-blue-300" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Mục tiêu</p>
+            <p className="text-lg font-bold text-blue-700 dark:text-blue-400">{data.totals.objectiveCount}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 border border-purple-200 dark:border-purple-800">
+          <div className="p-2 rounded-lg bg-purple-200 dark:bg-purple-800">
+            <BarChart3 className="h-4 w-4 text-purple-600 dark:text-purple-300" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">KPIs</p>
+            <p className="text-lg font-bold text-purple-700 dark:text-purple-400">{data.totals.kpiCount}</p>
+          </div>
         </div>
       </div>
 
       {/* Scorecard Table */}
-      <Card>
-        <CardHeader className="pb-3">
+      <Card className="shadow-md border-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm">
+        <CardHeader className="pb-3 border-b bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
           <CardTitle className="flex items-center gap-2">
-            <FileSpreadsheet className="h-5 w-5" />
+            <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600">
+              <FileSpreadsheet className="h-4 w-4 text-white" />
+            </div>
             Bảng Tóm Tắt BSC - Balanced Scorecard
           </CardTitle>
           <CardDescription>
@@ -134,24 +173,29 @@ export function ScorecardSummaryTable() {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead className="w-[140px] font-semibold">Góc Nhìn</TableHead>
-                  <TableHead className="w-[180px] font-semibold">Mục Tiêu</TableHead>
-                  <TableHead className="w-[180px] font-semibold">KPI</TableHead>
-                  <TableHead className="w-[60px] font-semibold text-center">Tỷ trọng</TableHead>
-                  <TableHead className="w-[60px] font-semibold text-center">Đơn vị</TableHead>
-                  <TableHead className="w-[50px] font-semibold text-center">Loại</TableHead>
-                  <TableHead className="w-[70px] font-semibold text-center">Min</TableHead>
-                  <TableHead className="w-[70px] font-semibold text-center">Ngưỡng</TableHead>
-                  <TableHead className="w-[80px] font-semibold text-center bg-primary/10">Mục tiêu</TableHead>
-                  <TableHead className="w-[70px] font-semibold text-center">Max</TableHead>
-                  <TableHead className="w-[100px] font-semibold">Tần suất</TableHead>
+                <TableRow className="bg-gradient-to-r from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900 border-b-2">
+                  <TableHead className="w-[160px] font-bold text-slate-700 dark:text-slate-200">Góc Nhìn</TableHead>
+                  <TableHead className="w-[180px] font-bold text-slate-700 dark:text-slate-200">Mục Tiêu</TableHead>
+                  <TableHead className="w-[180px] font-bold text-slate-700 dark:text-slate-200">KPI</TableHead>
+                  <TableHead className="w-[60px] font-bold text-center text-slate-700 dark:text-slate-200">Tỷ trọng</TableHead>
+                  <TableHead className="w-[60px] font-bold text-center text-slate-700 dark:text-slate-200">Đơn vị</TableHead>
+                  <TableHead className="w-[50px] font-bold text-center text-slate-700 dark:text-slate-200">Loại</TableHead>
+                  <TableHead className="w-[70px] font-bold text-center text-slate-600 dark:text-slate-300">Min</TableHead>
+                  <TableHead className="w-[70px] font-bold text-center text-slate-600 dark:text-slate-300">Ngưỡng</TableHead>
+                  <TableHead className="w-[80px] font-bold text-center bg-primary/15 text-primary">Mục tiêu</TableHead>
+                  <TableHead className="w-[70px] font-bold text-center text-slate-600 dark:text-slate-300">Max</TableHead>
+                  <TableHead className="w-[100px] font-bold text-slate-700 dark:text-slate-200">Tần suất</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data.perspectives.map((perspective, pIdx) => {
                   const perspectiveRowSpan = calculatePerspectiveRows(perspective);
-                  const perspectiveColor = PERSPECTIVE_COLORS[perspective.name] || '#6b7280';
+                  const config = PERSPECTIVE_CONFIG[perspective.name] || { 
+                    color: '#6b7280', 
+                    gradient: 'from-slate-400 to-slate-500',
+                    Icon: Target 
+                  };
+                  const PerspectiveIcon = config.Icon;
 
                   return perspective.objectives.map((objective, oIdx) => {
                     const objectiveRowSpan = calculateObjectiveRows(objective.kpis);
@@ -160,25 +204,35 @@ export function ScorecardSummaryTable() {
                       objective.kpis.map((kpi, kIdx) => (
                         <TableRow 
                           key={`${perspective.id}-${objective.id}-${kpi.id}`}
-                          className={pIdx % 2 === 0 ? 'bg-background' : 'bg-muted/30'}
+                          className="group hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors"
                         >
                           {/* Perspective cell - only on first row */}
                           {oIdx === 0 && kIdx === 0 && (
                             <TableCell 
                               rowSpan={perspectiveRowSpan}
-                              className="align-top font-medium border-r"
+                              className="align-top font-medium border-r-2"
                               style={{ 
-                                borderLeft: `4px solid ${perspectiveColor}`,
-                                backgroundColor: `${perspectiveColor}10`,
+                                borderLeft: `4px solid ${config.color}`,
+                                backgroundColor: `${config.color}08`,
                               }}
                             >
-                              <div className="space-y-1">
-                                <span className="text-sm font-semibold">{perspective.name}</span>
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <div 
+                                    className={`p-1.5 rounded-lg bg-gradient-to-br ${config.gradient} shadow-sm`}
+                                    style={{ boxShadow: `0 2px 8px ${config.color}30` }}
+                                  >
+                                    <PerspectiveIcon className="h-3.5 w-3.5 text-white" />
+                                  </div>
+                                  <span className="text-sm font-bold" style={{ color: config.color }}>
+                                    {perspective.name}
+                                  </span>
+                                </div>
                                 {perspective.weight && (
                                   <Badge 
                                     variant="secondary" 
-                                    className="block w-fit text-xs"
-                                    style={{ backgroundColor: `${perspectiveColor}20`, color: perspectiveColor }}
+                                    className="text-xs font-semibold"
+                                    style={{ backgroundColor: `${config.color}15`, color: config.color }}
                                   >
                                     {perspective.weight}%
                                   </Badge>
@@ -219,9 +273,9 @@ export function ScorecardSummaryTable() {
                                 variant="outline" 
                                 className="text-xs font-medium"
                                 style={{ 
-                                  backgroundColor: `${perspectiveColor}15`,
-                                  borderColor: perspectiveColor,
-                                  color: perspectiveColor 
+                                  backgroundColor: `${config.color}15`,
+                                  borderColor: config.color,
+                                  color: config.color 
                                 }}
                               >
                                 {kpi.weight}%
@@ -273,14 +327,27 @@ export function ScorecardSummaryTable() {
                       ))
                     ) : (
                       // Objective without KPIs
-                      <TableRow key={`${perspective.id}-${objective.id}-empty`}>
+                      <TableRow key={`${perspective.id}-${objective.id}-empty`} className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
                         {oIdx === 0 && (
                           <TableCell 
                             rowSpan={perspectiveRowSpan}
-                            className="align-top font-medium border-r"
-                            style={{ borderLeft: `4px solid ${perspectiveColor}` }}
+                            className="align-top font-medium border-r-2"
+                            style={{ 
+                              borderLeft: `4px solid ${config.color}`,
+                              backgroundColor: `${config.color}08`,
+                            }}
                           >
-                            {perspective.name}
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className={`p-1.5 rounded-lg bg-gradient-to-br ${config.gradient} shadow-sm`}
+                                style={{ boxShadow: `0 2px 8px ${config.color}30` }}
+                              >
+                                <PerspectiveIcon className="h-3.5 w-3.5 text-white" />
+                              </div>
+                              <span className="text-sm font-bold" style={{ color: config.color }}>
+                                {perspective.name}
+                              </span>
+                            </div>
                           </TableCell>
                         )}
                         <TableCell className="align-top border-r">

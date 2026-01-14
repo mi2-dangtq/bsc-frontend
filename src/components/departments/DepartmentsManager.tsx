@@ -248,25 +248,29 @@ export function DepartmentsManager() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Network className="h-6 w-6" />
-            Quản lý Phòng ban
-          </h1>
-          <p className="text-muted-foreground">
-            Cấu trúc tổ chức đồng bộ từ Bitrix24
-          </p>
+      {/* Header with gradient icon */}
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 shadow-lg">
+            <Network className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">
+              Quản lý Phòng ban
+            </h1>
+            <p className="text-muted-foreground mt-0.5">
+              Cấu trúc tổ chức đồng bộ từ Bitrix24
+            </p>
+          </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={expandAll}>
-            Mở rộng tất cả
+          <Button variant="outline" onClick={expandAll} size="sm">
+            Mở rộng
           </Button>
-          <Button variant="outline" onClick={collapseAll}>
+          <Button variant="outline" onClick={collapseAll} size="sm">
             Thu gọn
           </Button>
-          <Button onClick={syncFromBitrix24} disabled={syncing}>
+          <Button onClick={syncFromBitrix24} disabled={syncing} className="shadow-sm">
             {syncing ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -291,9 +295,9 @@ export function DepartmentsManager() {
 
       {/* Sync Result */}
       {syncResult && (
-        <Alert>
-          <CheckCircle className="h-4 w-4" />
-          <AlertDescription>
+        <Alert className="border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-800">
+          <CheckCircle className="h-4 w-4 text-emerald-600" />
+          <AlertDescription className="text-emerald-700 dark:text-emerald-400">
             Đồng bộ thành công: <strong>{syncResult.created}</strong> mới,{' '}
             <strong>{syncResult.updated}</strong> cập nhật. Tổng:{' '}
             <strong>{syncResult.total}</strong> phòng ban.
@@ -301,59 +305,60 @@ export function DepartmentsManager() {
         </Alert>
       )}
 
-      {/* Stats */}
+      {/* Stats Cards with gradients */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Tổng phòng ban
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{departments.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Phòng ban gốc
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{departmentTree.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Có trưởng phòng
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 border border-blue-200 dark:border-blue-800">
+          <div className="p-2.5 rounded-lg bg-blue-200 dark:bg-blue-800">
+            <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-300" />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Tổng phòng ban</p>
+            <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">{departments.length}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 border border-purple-200 dark:border-purple-800">
+          <div className="p-2.5 rounded-lg bg-purple-200 dark:bg-purple-800">
+            <Network className="h-5 w-5 text-purple-600 dark:text-purple-300" />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Phòng ban gốc</p>
+            <p className="text-2xl font-bold text-purple-700 dark:text-purple-400">{departmentTree.length}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/30 dark:to-emerald-900/30 border border-emerald-200 dark:border-emerald-800">
+          <div className="p-2.5 rounded-lg bg-emerald-200 dark:bg-emerald-800">
+            <Users className="h-5 w-5 text-emerald-600 dark:text-emerald-300" />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Có trưởng phòng</p>
+            <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">
               {departments.filter((d) => d.headUserId && d.headUserId !== '0').length}
-            </div>
-          </CardContent>
-        </Card>
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Department Tree */}
-      <Card>
-        <CardHeader>
+      <Card className="shadow-md border-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm">
+        <CardHeader className="border-b bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
           <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
+            <div className="p-1.5 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600">
+              <Building2 className="h-4 w-4 text-white" />
+            </div>
             Cấu trúc tổ chức
           </CardTitle>
           <CardDescription>
             Click vào phòng ban để mở rộng/thu gọn các phòng ban con
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4">
           {departmentTree.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Chưa có phòng ban nào.</p>
-              <p className="text-sm">Nhấn "Đồng bộ Bitrix24" để lấy dữ liệu.</p>
+            <div className="text-center py-12">
+              <div className="p-4 rounded-full bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950/50 dark:to-slate-800/50 inline-block mb-4">
+                <Building2 className="h-10 w-10 text-slate-400" />
+              </div>
+              <p className="text-muted-foreground">Chưa có phòng ban nào.</p>
+              <p className="text-sm text-muted-foreground">Nhấn &quot;Đồng bộ Bitrix24&quot; để lấy dữ liệu.</p>
             </div>
           ) : (
             <div className="space-y-1">

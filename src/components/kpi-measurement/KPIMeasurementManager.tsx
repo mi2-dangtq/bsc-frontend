@@ -95,23 +95,20 @@ export function KPIMeasurementManager() {
 
   return (
     <div className="space-y-6">
-      {/* Department Filter Notice */}
-      {selectedDepartment && (
-        <Alert>
-          <Building2 className="h-4 w-4" />
-          <AlertDescription>
-            Đang xem KPI của <strong>{selectedDepartment.name}</strong>. Chọn &ldquo;Toàn công ty&rdquo; để xem tất cả.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Nhập kết quả KPI</h1>
-          <p className="text-muted-foreground">
-            Cập nhật giá trị thực tế cho các KPI đã phân bổ
-          </p>
+      {/* Header with gradient icon */}
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg">
+            <TrendingUp className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">
+              Nhập kết quả KPI
+            </h1>
+            <p className="text-muted-foreground mt-0.5">
+              Cập nhật giá trị thực tế cho các KPI đã phân bổ
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <DepartmentSelector showLabel={false} />
@@ -128,56 +125,66 @@ export function KPIMeasurementManager() {
             </SelectContent>
           </Select>
           <Button variant="outline" onClick={() => api.fetchAllocations(selectedYear, selectedDepartment?.id)}>
-            <RefreshCw className="h-4 w-4 mr-1" />
-            Refresh
+            <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Department Filter Notice */}
+      {selectedDepartment && (
+        <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-800">
+          <Building2 className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-700 dark:text-blue-400">
+            Đang xem KPI của <strong>{selectedDepartment.name}</strong>. Chọn &ldquo;Toàn công ty&rdquo; để xem tất cả.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Stats Cards with gradients */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Tổng KPI
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Đã đo lường
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 border border-blue-200 dark:border-blue-800">
+          <div className="p-2.5 rounded-lg bg-blue-200 dark:bg-blue-800">
+            <Target className="h-5 w-5 text-blue-600 dark:text-blue-300" />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Tổng KPI</p>
+            <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">{stats.total}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/30 dark:to-emerald-900/30 border border-emerald-200 dark:border-emerald-800">
+          <div className="p-2.5 rounded-lg bg-emerald-200 dark:bg-emerald-800">
+            <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-300" />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Đã đo lường</p>
             <div className="flex items-center gap-2">
-              <div className="text-2xl font-bold">{stats.measured}</div>
-              <Badge variant="secondary">{stats.total > 0 ? ((stats.measured / stats.total) * 100).toFixed(0) : 0}%</Badge>
+              <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">{stats.measured}</p>
+              <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400">
+                {stats.total > 0 ? ((stats.measured / stats.total) * 100).toFixed(0) : 0}%
+              </Badge>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Điểm trung bình
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          </div>
+        </div>
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 border border-purple-200 dark:border-purple-800">
+          <div className="p-2.5 rounded-lg bg-purple-200 dark:bg-purple-800">
+            <TrendingUp className="h-5 w-5 text-purple-600 dark:text-purple-300" />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Điểm trung bình</p>
+            <p className="text-2xl font-bold text-purple-700 dark:text-purple-400">
               {stats.measured > 0 ? stats.avgScore.toFixed(1) : '-'}%
-            </div>
-          </CardContent>
-        </Card>
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* KPI Table */}
-      <Card>
-        <CardHeader>
+      <Card className="shadow-md border-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm">
+        <CardHeader className="border-b bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
           <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
+            <div className="p-1.5 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600">
+              <TrendingUp className="h-4 w-4 text-white" />
+            </div>
             Danh sách KPI năm {selectedYear}
           </CardTitle>
         </CardHeader>

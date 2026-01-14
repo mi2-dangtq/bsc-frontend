@@ -24,7 +24,7 @@ import { ObjectiveEditorDialog, type ObjectiveData } from './ObjectiveEditorDial
 import { ThemeManagementDialog } from './ThemeManagementDialog';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Save, RotateCcw, RefreshCw, Layers } from 'lucide-react';
+import { Save, RotateCcw, RefreshCw, Layers, Calendar, Target, Link2, AlertTriangle } from 'lucide-react';
 import { useStrategyMapAPI, getDbIdFromNodeId } from '@/hooks/useStrategyMapAPI';
 import { useDepartment, usePerspectives } from '@/contexts';
 
@@ -437,44 +437,78 @@ export function StrategyMapCanvas({ year }: StrategyMapCanvasProps) {
 
   return (
     <>
-      {/* Toolbar - outside ReactFlow */}
-      <div className="flex items-center justify-between mb-3 px-1">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-muted-foreground">Năm:</span>
-            <span className="text-sm font-bold">{year}</span>
+      {/* Stats Bar - Modern design matching CSF page */}
+      <div className="grid grid-cols-5 gap-3 mb-4">
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border">
+          <div className="p-2 rounded-lg bg-slate-200 dark:bg-slate-700">
+            <Calendar className="h-4 w-4 text-slate-600 dark:text-slate-300" />
           </div>
-          <div className="h-4 w-px bg-border" />
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <span>{objectiveCount} mục tiêu</span>
-            <span>•</span>
-            <span>{edges.length} liên kết</span>
-            {disconnectedObjectives.length > 0 && (
-              <>
-                <span>•</span>
-                <span className="text-amber-600 font-medium">
-                  ⚠ {disconnectedObjectives.length} chưa kết nối
-                </span>
-              </>
-            )}
+          <div>
+            <p className="text-xs text-muted-foreground">Năm</p>
+            <p className="text-lg font-bold">{year}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={() => setThemeDialogOpen(true)}>
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 border border-blue-200 dark:border-blue-800">
+          <div className="p-2 rounded-lg bg-blue-200 dark:bg-blue-800">
+            <Target className="h-4 w-4 text-blue-600 dark:text-blue-300" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Mục tiêu</p>
+            <p className="text-lg font-bold text-blue-700 dark:text-blue-400">{objectiveCount}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/30 dark:to-emerald-900/30 border border-emerald-200 dark:border-emerald-800">
+          <div className="p-2 rounded-lg bg-emerald-200 dark:bg-emerald-800">
+            <Link2 className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Liên kết</p>
+            <p className="text-lg font-bold text-emerald-700 dark:text-emerald-400">{edges.length}</p>
+          </div>
+        </div>
+        <div className={`flex items-center gap-3 p-3 rounded-xl border ${
+          disconnectedObjectives.length > 0 
+            ? 'bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950/30 dark:to-amber-900/30 border-amber-200 dark:border-amber-800' 
+            : 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/30 border-green-200 dark:border-green-800'
+        }`}>
+          <div className={`p-2 rounded-lg ${
+            disconnectedObjectives.length > 0 
+              ? 'bg-amber-200 dark:bg-amber-800' 
+              : 'bg-green-200 dark:bg-green-800'
+          }`}>
+            <AlertTriangle className={`h-4 w-4 ${
+              disconnectedObjectives.length > 0 
+                ? 'text-amber-600 dark:text-amber-300' 
+                : 'text-green-600 dark:text-green-300'
+            }`} />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Chưa kết nối</p>
+            <p className={`text-lg font-bold ${
+              disconnectedObjectives.length > 0 
+                ? 'text-amber-700 dark:text-amber-400' 
+                : 'text-green-700 dark:text-green-400'
+            }`}>
+              {disconnectedObjectives.length}
+            </p>
+          </div>
+        </div>
+        
+        {/* Action buttons */}
+        <div className="flex items-center gap-2 justify-end">
+          <Button size="sm" variant="outline" onClick={() => setThemeDialogOpen(true)} className="h-9">
             <Layers className="h-4 w-4 mr-1.5" />
             Nhóm CL
           </Button>
-          <Button size="sm" variant="default" onClick={handleSavePositions}>
+          <Button size="sm" variant="default" onClick={handleSavePositions} className="h-9 shadow-sm">
             <Save className="h-4 w-4 mr-1.5" />
             Lưu
           </Button>
-          <Button size="sm" variant="outline" onClick={handleRefresh}>
-            <RefreshCw className="h-4 w-4 mr-1.5" />
-            Refresh
+          <Button size="sm" variant="outline" onClick={handleRefresh} className="h-9">
+            <RefreshCw className="h-4 w-4" />
           </Button>
-          <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={handleReset}>
-            <RotateCcw className="h-4 w-4 mr-1.5" />
-            Xóa
+          <Button size="sm" variant="ghost" className="h-9 text-destructive hover:text-destructive" onClick={handleReset}>
+            <RotateCcw className="h-4 w-4" />
           </Button>
         </div>
       </div>

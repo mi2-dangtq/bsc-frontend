@@ -17,8 +17,7 @@ import {
   TrendingUp, TrendingDown, Activity, Target 
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+import { kpiLibraryAPI, KPILibrary } from '@/lib/api';
 
 interface KpiLibraryItem {
   id: number;
@@ -62,11 +61,8 @@ export default function KpiLibraryPage() {
   useEffect(() => {
     const fetchKpiLibrary = async () => {
       try {
-        const res = await fetch(`${API_URL}/kpi/library`);
-        if (res.ok) {
-          const data = await res.json();
-          setKpiLibrary(data);
-        }
+        const data = await kpiLibraryAPI.getAll();
+        setKpiLibrary(data as KpiLibraryItem[]);
       } catch (err) {
         console.error('Failed to fetch KPI library:', err);
       } finally {
@@ -75,6 +71,7 @@ export default function KpiLibraryPage() {
     };
     fetchKpiLibrary();
   }, []);
+
 
   const filteredKpis = kpiLibrary.filter((kpi) =>
     kpi.name.toLowerCase().includes(searchTerm.toLowerCase())

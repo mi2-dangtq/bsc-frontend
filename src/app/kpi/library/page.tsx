@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,9 +12,26 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { 
   Plus, Search, Filter, Loader2, BookOpen, BarChart3, 
-  TrendingUp, TrendingDown, Activity, Target 
+  TrendingUp, TrendingDown, Activity, Target, Pencil, Trash2
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { kpiLibraryAPI, KPILibrary } from '@/lib/api';
@@ -31,11 +48,49 @@ interface KpiLibraryItem {
   isActive: boolean;
 }
 
+interface KpiFormData {
+  name: string;
+  definition: string;
+  unit: string;
+  kpiType: 'INPUT' | 'PROCESS' | 'OUTPUT' | 'OUTCOME';
+  trend: 'POSITIVE' | 'NEGATIVE';
+  frequency: 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
+  formula: string;
+}
+
+const INITIAL_FORM_DATA: KpiFormData = {
+  name: '',
+  definition: '',
+  unit: '',
+  kpiType: 'OUTPUT',
+  trend: 'POSITIVE',
+  frequency: 'MONTHLY',
+  formula: '',
+};
+
 const FREQUENCY_LABELS: Record<string, string> = {
   MONTHLY: 'Tháng',
   QUARTERLY: 'Quý',
   YEARLY: 'Năm',
 };
+
+const KPI_TYPE_OPTIONS = [
+  { value: 'INPUT', label: 'Đầu vào' },
+  { value: 'PROCESS', label: 'Quy trình' },
+  { value: 'OUTPUT', label: 'Đầu ra' },
+  { value: 'OUTCOME', label: 'Kết quả' },
+];
+
+const TREND_OPTIONS = [
+  { value: 'POSITIVE', label: 'Thuận (cao hơn = tốt hơn)' },
+  { value: 'NEGATIVE', label: 'Ngược (thấp hơn = tốt hơn)' },
+];
+
+const FREQUENCY_OPTIONS = [
+  { value: 'MONTHLY', label: 'Hàng tháng' },
+  { value: 'QUARTERLY', label: 'Hàng quý' },
+  { value: 'YEARLY', label: 'Hàng năm' },
+];
 
 function getTypeBadge(type: string) {
   const styles: Record<string, { variant: 'default' | 'secondary' | 'outline' | 'destructive'; label: string; className?: string }> = {
@@ -57,21 +112,31 @@ export default function KpiLibraryPage() {
   const [kpiLibrary, setKpiLibrary] = useState<KpiLibraryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Dialog states
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [editingKpi, setEditingKpi] = useState<KpiLibraryItem | null>(null);
+  const [deletingKpi, setDeletingKpi] = useState<KpiLibraryItem | null>(null);
+  const [formData, setFormData] = useState<KpiFormData>(INITIAL_FORM_DATA);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    const fetchKpiLibrary = async () => {
-      try {
-        const data = await kpiLibraryAPI.getAll();
-        setKpiLibrary(data as KpiLibraryItem[]);
-      } catch (err) {
-        console.error('Failed to fetch KPI library:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchKpiLibrary();
+  const fetchKpiLibrary = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await kpiLibraryAPI.getAll();
+      setKpiLibrary(data as KpiLibraryItem[]);
+    } catch (err) {
+      console.error('Failed to fetch KPI library:', err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    fetchKpiLibrary();
+  }, [fetchKpiLibrary]);
 
   const filteredKpis = kpiLibrary.filter((kpi) =>
     kpi.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -96,6 +161,86 @@ export default function KpiLibraryPage() {
     };
   }, [kpiLibrary]);
 
+  // Open dialog for creating new KPI
+  const handleOpenCreate = () => {
+    setEditingKpi(null);
+    setFormData(INITIAL_FORM_DATA);
+    setDialogOpen(true);
+  };
+
+  // Open dialog for editing KPI
+  const handleOpenEdit = (kpi: KpiLibraryItem) => {
+    setEditingKpi(kpi);
+    setFormData({
+      name: kpi.name,
+      definition: kpi.definition || '',
+      unit: kpi.unit || '',
+      kpiType: kpi.kpiType,
+      trend: kpi.trend,
+      frequency: kpi.frequency,
+      formula: kpi.formula || '',
+    });
+    setDialogOpen(true);
+  };
+
+  // Open delete confirmation dialog
+  const handleOpenDelete = (kpi: KpiLibraryItem) => {
+    setDeletingKpi(kpi);
+    setDeleteDialogOpen(true);
+  };
+
+  // Handle form submit (create or update)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name.trim()) return;
+
+    try {
+      setSaving(true);
+      const payload = {
+        name: formData.name.trim(),
+        definition: formData.definition.trim() || null,
+        unit: formData.unit.trim() || null,
+        kpiType: formData.kpiType,
+        trend: formData.trend,
+        frequency: formData.frequency,
+        formula: formData.formula.trim() || null,
+        isActive: true,
+      };
+
+      if (editingKpi) {
+        await kpiLibraryAPI.update(editingKpi.id, payload);
+      } else {
+        await kpiLibraryAPI.create(payload);
+      }
+
+      setDialogOpen(false);
+      await fetchKpiLibrary();
+    } catch (err) {
+      console.error('Failed to save KPI:', err);
+      alert('Có lỗi khi lưu KPI. Vui lòng thử lại.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Handle delete
+  const handleDelete = async () => {
+    if (!deletingKpi) return;
+
+    try {
+      setDeleting(true);
+      await kpiLibraryAPI.delete(deletingKpi.id);
+      setDeleteDialogOpen(false);
+      setDeletingKpi(null);
+      await fetchKpiLibrary();
+    } catch (err) {
+      console.error('Failed to delete KPI:', err);
+      alert('Có lỗi khi xóa KPI. Vui lòng thử lại.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header with gradient icon */}
@@ -113,7 +258,7 @@ export default function KpiLibraryPage() {
             </p>
           </div>
         </div>
-        <Button className="shadow-sm gap-2">
+        <Button className="shadow-sm gap-2" onClick={handleOpenCreate}>
           <Plus className="h-4 w-4" />
           Thêm KPI mới
         </Button>
@@ -203,6 +348,12 @@ export default function KpiLibraryPage() {
               <p className="text-muted-foreground">
                 {searchTerm ? 'Không tìm thấy KPI phù hợp' : 'Chưa có KPI nào trong thư viện'}
               </p>
+              {!searchTerm && (
+                <Button className="mt-4" onClick={handleOpenCreate}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Thêm KPI đầu tiên
+                </Button>
+              )}
             </div>
           ) : (
             <Table>
@@ -244,13 +395,24 @@ export default function KpiLibraryPage() {
                         {FREQUENCY_LABELS[kpi.frequency] || kpi.frequency}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          className="opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          Sửa
-                        </Button>
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleOpenEdit(kpi)}
+                          >
+                            <Pencil className="h-4 w-4 mr-1" />
+                            Sửa
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleOpenDelete(kpi)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -260,6 +422,157 @@ export default function KpiLibraryPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600">
+                <BookOpen className="h-4 w-4 text-white" />
+              </div>
+              {editingKpi ? 'Chỉnh sửa KPI' : 'Thêm KPI mới'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingKpi ? 'Cập nhật thông tin KPI trong thư viện.' : 'Tạo một KPI mới trong thư viện để sử dụng cho các mục tiêu.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Tên KPI <span className="text-red-500">*</span></Label>
+              <Input
+                id="name"
+                placeholder="VD: Doanh thu thuần"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="definition">Định nghĩa</Label>
+              <Textarea
+                id="definition"
+                placeholder="Mô tả chi tiết về KPI..."
+                value={formData.definition}
+                onChange={(e) => setFormData(prev => ({ ...prev, definition: e.target.value }))}
+                rows={3}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="unit">Đơn vị</Label>
+                <Input
+                  id="unit"
+                  placeholder="VD: VNĐ, %, người"
+                  value={formData.unit}
+                  onChange={(e) => setFormData(prev => ({ ...prev, unit: e.target.value }))}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="kpiType">Loại KPI</Label>
+                <Select
+                  value={formData.kpiType}
+                  onValueChange={(value: KpiFormData['kpiType']) => setFormData(prev => ({ ...prev, kpiType: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {KPI_TYPE_OPTIONS.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="trend">Xu hướng</Label>
+                <Select
+                  value={formData.trend}
+                  onValueChange={(value: KpiFormData['trend']) => setFormData(prev => ({ ...prev, trend: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TREND_OPTIONS.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="frequency">Tần suất đo</Label>
+                <Select
+                  value={formData.frequency}
+                  onValueChange={(value: KpiFormData['frequency']) => setFormData(prev => ({ ...prev, frequency: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FREQUENCY_OPTIONS.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="formula">Công thức tính</Label>
+              <Input
+                id="formula"
+                placeholder="VD: Tổng doanh thu / Số khách hàng"
+                value={formData.formula}
+                onChange={(e) => setFormData(prev => ({ ...prev, formula: e.target.value }))}
+              />
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>
+                Hủy
+              </Button>
+              <Button type="submit" disabled={saving || !formData.name.trim()}>
+                {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {editingKpi ? 'Lưu thay đổi' : 'Tạo KPI'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="h-5 w-5" />
+              Xác nhận xóa KPI
+            </DialogTitle>
+            <DialogDescription>
+              Bạn có chắc chắn muốn xóa KPI <strong className="text-foreground">&quot;{deletingKpi?.name}&quot;</strong>? 
+              Hành động này không thể hoàn tác.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>
+              Hủy
+            </Button>
+            <Button type="button" variant="destructive" onClick={handleDelete} disabled={deleting}>
+              {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Xóa KPI
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

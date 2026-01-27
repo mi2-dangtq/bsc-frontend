@@ -1,21 +1,37 @@
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
 
+// Get token from localStorage (client-side only)
+function getAuthToken(): string | null {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('bsc_token');
+  }
+  return null;
+}
+
 // Generic fetch wrapper with error handling
 async function fetchAPI<T>(
   endpoint: string,
   options?: RequestInit
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
+  const token = getAuthToken();
   
   const response = await fetch(url, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
       ...options?.headers,
     },
   });
 
   if (!response.ok) {
+    // Handle 401 Unauthorized - redirect to login
+    if (response.status === 401 && typeof window !== 'undefined') {
+      localStorage.removeItem('bsc_token');
+      window.location.href = '/login';
+      throw new Error('Unauthorized');
+    }
     const error = await response.json().catch(() => ({}));
     throw new Error(error.message || `HTTP ${response.status}`);
   }

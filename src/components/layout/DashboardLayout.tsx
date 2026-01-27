@@ -271,6 +271,15 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
 }
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  
+  // Skip dashboard layout for auth pages
+  const isAuthPage = pathname?.startsWith('/login') || pathname?.startsWith('/auth');
+  
+  if (isAuthPage) {
+    return <>{children}</>;
+  }
+  
   return (
     <PerspectiveProvider>
       <DepartmentProvider>

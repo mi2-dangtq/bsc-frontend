@@ -12,6 +12,8 @@ import {
   Building2,
   GitFork,
   ChevronDown,
+  LogOut,
+  User,
 } from 'lucide-react';
 
 import {
@@ -38,6 +40,8 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Navigation items cho BSC/KPI System
 const navigationItems = [
@@ -95,6 +99,7 @@ const managementItems = [
 
 function AppSidebarContent() {
   const pathname = usePathname();
+  const { user, logout, isAuthenticated } = useAuth();
 
   return (
     <>
@@ -179,15 +184,39 @@ function AppSidebarContent() {
       </SidebarContent>
 
       <SidebarFooter className="border-t p-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-            <Users className="h-4 w-4" />
+        {isAuthenticated && user ? (
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                <User className="h-4 w-4" />
+              </div>
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-sm font-medium truncate">
+                  {user.firstName} {user.lastName}
+                </span>
+                <span className="text-xs text-muted-foreground truncate">
+                  {user.email}
+                </span>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={logout}
+              className="w-full gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              Đăng xuất
+            </Button>
           </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-medium">Admin</span>
-            <span className="text-xs text-muted-foreground">admin@company.com</span>
+        ) : (
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+              <User className="h-4 w-4" />
+            </div>
+            <span className="text-sm text-muted-foreground">Chưa đăng nhập</span>
           </div>
-        </div>
+        )}
       </SidebarFooter>
     </>
   );

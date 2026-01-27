@@ -4,6 +4,7 @@ import "./globals.css";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -24,13 +25,14 @@ export default function RootLayout({
     <html lang="vi" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`} suppressHydrationWarning>
         <AuthProvider>
-          <DashboardLayout>
-            {children}
-          </DashboardLayout>
+          <AuthGuard>
+            <DashboardLayout>
+              {children}
+            </DashboardLayout>
+          </AuthGuard>
         </AuthProvider>
         <Toaster position="top-right" />
       </body>
     </html>
   );
 }
-

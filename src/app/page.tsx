@@ -16,7 +16,7 @@ import {
   TrendingDown,
   AlertCircle,
   CheckCircle2,
-  Clock,
+
   Loader2,
   DollarSign,
   Users,
@@ -65,37 +65,7 @@ const perspectiveBgGradients: Record<number, string> = {
   4: 'from-violet-50 to-purple-100 dark:from-violet-950/30 dark:to-purple-900/30',
 };
 
-// Recent activities
-const recentActivities = [
-  {
-    action: 'Cập nhật KPI',
-    item: 'Doanh thu Q1',
-    user: 'Nguyễn Văn A',
-    time: '5 phút trước',
-    status: 'success',
-  },
-  {
-    action: 'Tạo mục tiêu',
-    item: 'Tăng trưởng thị phần',
-    user: 'Trần Thị B',
-    time: '1 giờ trước',
-    status: 'success',
-  },
-  {
-    action: 'Nhập kết quả',
-    item: 'CSAT tháng 1',
-    user: 'Lê Văn C',
-    time: '2 giờ trước',
-    status: 'warning',
-  },
-  {
-    action: 'Phê duyệt',
-    item: 'Bản đồ chiến lược 2026',
-    user: 'Phạm Văn D',
-    time: '1 ngày trước',
-    status: 'success',
-  },
-];
+
 
 function getScoreColor(score: number) {
   if (score >= 90) return 'text-emerald-600';
@@ -345,50 +315,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Recent Activity with enhanced styling */}
-      <Card className="shadow-lg border">
-        <CardHeader className="border-b bg-slate-50 dark:bg-slate-900/50">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg">
-              <Clock className="h-4 w-4 text-white" />
-            </div>
-            <div>
-              <CardTitle>Hoạt động gần đây</CardTitle>
-              <CardDescription>Các cập nhật mới nhất trong hệ thống</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-4">
-          <div className="space-y-3">
-            {recentActivities.map((activity, index) => (
-              <div 
-                key={index} 
-                className="flex items-center gap-4 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors"
-              >
-                <div
-                  className={`h-3 w-3 rounded-full ring-4 ${
-                    activity.status === 'success'
-                      ? 'bg-emerald-500 ring-emerald-100'
-                      : activity.status === 'warning'
-                        ? 'bg-amber-500 ring-amber-100'
-                        : 'bg-red-500 ring-red-100'
-                  }`}
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">
-                    {activity.action}: <span className="font-normal text-muted-foreground">{activity.item}</span>
-                  </p>
-                  <p className="text-xs text-muted-foreground">{activity.user}</p>
-                </div>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-full">
-                  <Clock className="h-3 w-3" />
-                  {activity.time}
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+
     </div>
   );
 }

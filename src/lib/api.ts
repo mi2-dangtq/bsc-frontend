@@ -204,6 +204,18 @@ export const csfAPI = {
     }),
   delete: (id: number) =>
     fetchAPI<CSF>(`/csf/${id}`, { method: 'DELETE' }),
+  
+  // Department Assignment
+  getDepartments: (csfId: number) =>
+    fetchAPI<{ id: string; name: string; code: string | null }[]>(`/csf/${csfId}/departments`),
+  setDepartments: (csfId: number, departmentIds: string[]) =>
+    fetchAPI<{ departments: Array<{ department: { id: string; name: string; code: string | null } }> }>(
+      `/csf/${csfId}/departments`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ departmentIds }),
+      }
+    ),
 };
 
 // ===== KPI Library =====

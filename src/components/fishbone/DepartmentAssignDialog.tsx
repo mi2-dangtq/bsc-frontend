@@ -15,8 +15,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+import { csfAPI } from '@/lib/api';
 
 interface AssignedDepartment {
   id: string;
@@ -48,7 +47,7 @@ export function DepartmentAssignDialog({
   // Initialize with current assignments when dialog opens
   useEffect(() => {
     if (open) {
-      setSelectedIds(new Set(currentDepartments.map((d) => d.id)));
+      setSelectedIds(new Set(currentDepartments.map(d => d.id)));
     }
   }, [open, currentDepartments]);
 
@@ -65,24 +64,13 @@ export function DepartmentAssignDialog({
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch(`${API_URL}/csf/${csfId}/departments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ departmentIds: Array.from(selectedIds) }),
-      });
-
-      if (res.ok) {
-        const updated = await res.json();
-        const newDepartments = updated.departments?.map(
-          (d: { department: AssignedDepartment }) => d.department
-        ) || [];
-        onSave(newDepartments);
-        toast.success('Đã cập nhật phòng ban phụ trách');
-        onOpenChange(false);
-      } else {
-        throw new Error('Failed to assign departments');
-      }
+      const updated = await csfAPI.setDepartments(csfId, Array.from(selectedIds));
+      const newDepartments = updated.departments?.map(
+        (d) => d.department
+      ) || [];
+      onSave(newDepartments);
+      toast.success('Đã cập nhật phòng ban phụ trách');
+      onOpenChange(false);
     } catch (err) {
       console.error('Error assigning departments:', err);
       toast.error('Lỗi khi cập nhật phòng ban');

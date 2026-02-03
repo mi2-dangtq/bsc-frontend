@@ -442,7 +442,7 @@ export function FishboneCanvas() {
           open={deptDialogOpen}
           onOpenChange={setDeptDialogOpen}
           csfId={assigningCsf.dbId || 0}
-          csfName={assigningCsf.name}
+          csfContent={assigningCsf.name}
           currentDepartments={assigningCsf.departments || []}
           onSave={handleDeptSaved}
         />

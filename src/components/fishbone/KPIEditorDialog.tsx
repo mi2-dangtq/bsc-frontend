@@ -35,9 +35,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Info, Building2 } from 'lucide-react';
 import type { KPI } from './KPIItem';
-import type { KPILibrary } from '@/lib/api';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+import { csfAPI, type KPILibrary } from '@/lib/api';
 
 const kpiFormSchema = z.object({
   kpiLibId: z.number().min(1, 'Vui lòng chọn KPI từ thư viện'),
@@ -153,11 +151,9 @@ export function KPIEditorDialog({
 
     const fetchDepts = async () => {
       try {
-        const res = await fetch(`${API_URL}/csf/${csfId}/departments`);
-        if (res.ok) {
-          const depts: CsfDepartment[] = await res.json();
-          setAvailableDepts(depts);
-        }
+        // Use csfAPI with auth token instead of direct fetch
+        const depts = await csfAPI.getDepartments(csfId);
+        setAvailableDepts(depts);
       } catch (err) {
         console.error('Error fetching CSF departments:', err);
       }

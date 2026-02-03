@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -20,8 +21,10 @@ import {
   Loader2,
   CheckCircle,
   Network,
+  ExternalLink,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -49,11 +52,13 @@ function DepartmentNode({
   level = 0,
   expandedIds,
   toggleExpand,
+  onViewDetail,
 }: {
   dept: Department;
   level?: number;
   expandedIds: Set<string>;
   toggleExpand: (id: string) => void;
+  onViewDetail: (id: string) => void;
 }) {
   const hasChildren = dept.children && dept.children.length > 0;
   const isExpanded = expandedIds.has(dept.id);
@@ -62,7 +67,7 @@ function DepartmentNode({
     <div className="select-none">
       <div
         className={cn(
-          'flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors',
+          'group flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors',
           level === 0 && 'bg-primary/5 font-semibold'
         )}
         style={{ paddingLeft: `${level * 24 + 12}px` }}
@@ -112,6 +117,19 @@ function DepartmentNode({
         {dept.headUserId && dept.headUserId !== '0' && (
           <Users className="h-3 w-3 text-muted-foreground" />
         )}
+
+        {/* View Detail Button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={(e) => {
+            e.stopPropagation();
+            onViewDetail(dept.id);
+          }}
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+        </Button>
       </div>
 
       {/* Children */}
@@ -124,6 +142,7 @@ function DepartmentNode({
               level={level + 1}
               expandedIds={expandedIds}
               toggleExpand={toggleExpand}
+              onViewDetail={onViewDetail}
             />
           ))}
         </div>
@@ -133,12 +152,18 @@ function DepartmentNode({
 }
 
 export function DepartmentsManager() {
+  const router = useRouter();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
+
+  // Navigate to department detail page
+  const handleViewDetail = (id: string) => {
+    router.push(`/departments/${id}`);
+  };
 
   // Fetch departments
   const fetchDepartments = async () => {
@@ -363,11 +388,12 @@ export function DepartmentsManager() {
           ) : (
             <div className="space-y-1">
               {departmentTree.map((dept) => (
-                <DepartmentNode
+              <DepartmentNode
                   key={dept.id}
                   dept={dept}
                   expandedIds={expandedIds}
                   toggleExpand={toggleExpand}
+                  onViewDetail={handleViewDetail}
                 />
               ))}
             </div>

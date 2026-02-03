@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { RefreshCw, Building2, Layers, Target, FileText, BarChart3 } from 'lucide-react';
 import { CSFEditorDialog } from './CSFEditorDialog';
 import { KPIEditorDialog } from './KPIEditorDialog';
+import { DepartmentAssignDialog } from './DepartmentAssignDialog';
 import { CSFTreeNavigator, type TreeNode } from './CSFTreeNavigator';
 import { CSFDetailPanel } from './CSFDetailPanel';
 import type { KPI } from './KPIItem';
@@ -46,6 +47,10 @@ export function FishboneCanvas() {
   const [editingKpi, setEditingKpi] = useState<KPI | null>(null);
   const [editingKpiCsfId, setEditingKpiCsfId] = useState<string | null>(null);
   const [editingKpiCsfDbId, setEditingKpiCsfDbId] = useState<number | null>(null);
+
+  // Department Assign Dialog state
+  const [deptDialogOpen, setDeptDialogOpen] = useState(false);
+  const [assigningCsf, setAssigningCsf] = useState<CSF | null>(null);
 
   // Calculate used weight for KPI validation
   const usedWeight = csfs.reduce((total, csf) => {
@@ -277,6 +282,22 @@ export function FishboneCanvas() {
     setEditingKpiCsfDbId(null);
   };
 
+  // Department Assignment handler
+  const handleAssignDepartments = (csf: CSF) => {
+    setAssigningCsf(csf);
+    setDeptDialogOpen(true);
+  };
+
+  const handleDeptSaved = (newDepartments: Array<{ id: string; name: string; code: string | null }>) => {
+    if (assigningCsf) {
+      setCsfs(csfs.map(c => 
+        c.id === assigningCsf.id ? { ...c, departments: newDepartments } : c
+      ));
+    }
+    setDeptDialogOpen(false);
+    setAssigningCsf(null);
+  };
+
   // Stats for header
   const totalObjectives = objectives.length;
   const totalCSFs = selectedNode?.type === 'objective' ? csfs.length : 0;
@@ -388,6 +409,7 @@ export function FishboneCanvas() {
               onAddKPI={handleAddKpi}
               onEditKPI={handleEditKpi}
               onDeleteKPI={handleDeleteKpi}
+              onAssignDepartments={handleAssignDepartments}
             objectiveWeight={currentObjective?.weight}
           />
         </Card>
@@ -414,6 +436,17 @@ export function FishboneCanvas() {
         editingKpiWeight={(editingKpi as unknown as { weight?: number })?.weight || 0}
         csfId={editingKpiCsfDbId || undefined}
       />
+
+      {assigningCsf && (
+        <DepartmentAssignDialog
+          open={deptDialogOpen}
+          onOpenChange={setDeptDialogOpen}
+          csfId={assigningCsf.dbId || 0}
+          csfName={assigningCsf.name}
+          currentDepartments={assigningCsf.departments || []}
+          onSave={handleDeptSaved}
+        />
+      )}
     </div>
   );
 }

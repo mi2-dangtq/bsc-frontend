@@ -296,7 +296,7 @@ export const kpiAllocationAPI = {
     ),
   setDepartments: (allocationId: number, departmentIds: string[]) =>
     fetchAPI<{ success: boolean }>(`/kpi/allocations/${allocationId}/departments`, {
-      method: 'PUT',
+      method: 'POST',
       body: JSON.stringify({ departmentIds }),
     }),
 };

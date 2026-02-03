@@ -18,6 +18,12 @@ export interface LocalKPI {
   targetGoal?: number;
   targetMax?: number;
   description?: string;
+  // Department assignments
+  departments?: Array<{
+    id: string;
+    name: string;
+    code: string | null;
+  }>;
 }
 
 export interface LocalDepartment {
@@ -115,6 +121,11 @@ export function useFishboneAPI(): UseFishboneAPI {
           targetGoal: alloc.targetGoal ? Number(alloc.targetGoal) : undefined,
           targetMax: alloc.targetMax ? Number(alloc.targetMax) : undefined,
           description: alloc.kpiLib?.definition || undefined,
+          departments: (alloc.departments || []).map((d: any) => ({
+            id: d.department?.id || d.departmentId,
+            name: d.department?.name || '',
+            code: d.department?.code || null,
+          })),
         })),
         departments: (csf.departments || []).map((d: any) => ({
           id: d.department?.id || d.departmentId,

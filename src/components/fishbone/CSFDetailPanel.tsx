@@ -289,10 +289,11 @@ export function CSFDetailPanel({
                       <Table>
                         <TableHeader>
                           <TableRow className="hover:bg-transparent">
-                            <TableHead className="w-[40%]">KPI</TableHead>
-                            <TableHead className="w-[15%]">Đơn vị</TableHead>
-                            <TableHead className="w-[15%] text-center">Mục tiêu</TableHead>
-                            <TableHead className="w-[15%] text-center">Tỷ trọng</TableHead>
+                            <TableHead className="w-[35%]">KPI</TableHead>
+                            <TableHead className="w-[10%]">Đơn vị</TableHead>
+                            <TableHead className="w-[10%] text-center">Mục tiêu</TableHead>
+                            <TableHead className="w-[10%] text-center">Tỷ trọng</TableHead>
+                            <TableHead className="w-[20%]">Phòng ban</TableHead>
                             <TableHead className="w-[15%] text-right">Thao tác</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -326,6 +327,24 @@ export function CSFDetailPanel({
                                     {kpi.weight}%
                                   </Badge>
                                 ) : '-'}
+                              </TableCell>
+                              <TableCell>
+                                {kpi.departments && kpi.departments.length > 0 ? (
+                                  <div className="flex flex-wrap gap-1">
+                                    {kpi.departments.map(dept => (
+                                      <Badge 
+                                        key={dept.id} 
+                                        variant="outline" 
+                                        className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800"
+                                      >
+                                        <Building2 className="h-2.5 w-2.5 mr-1" />
+                                        {dept.code || dept.name.slice(0, 8)}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">Tất cả</span>
+                                )}
                               </TableCell>
                               <TableCell className="text-right">
                                 <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -435,10 +454,11 @@ export function CSFDetailPanel({
                 <TableHeader>
                   <TableRow>
                     <TableHead>KPI</TableHead>
-                    <TableHead className="w-[100px]">Đơn vị</TableHead>
-                    <TableHead className="w-[100px] text-center">Mục tiêu</TableHead>
-                    <TableHead className="w-[100px] text-center">Tỷ trọng</TableHead>
-                    <TableHead className="w-[120px] text-right">Thao tác</TableHead>
+                    <TableHead className="w-[80px]">Đơn vị</TableHead>
+                    <TableHead className="w-[80px] text-center">Mục tiêu</TableHead>
+                    <TableHead className="w-[80px] text-center">Tỷ trọng</TableHead>
+                    <TableHead className="w-[150px]">Phòng ban</TableHead>
+                    <TableHead className="w-[100px] text-right">Thao tác</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -469,6 +489,24 @@ export function CSFDetailPanel({
                             {kpi.weight}%
                           </Badge>
                         ) : '-'}
+                      </TableCell>
+                      <TableCell>
+                        {kpi.departments && kpi.departments.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {kpi.departments.map(dept => (
+                              <Badge 
+                                key={dept.id} 
+                                variant="outline" 
+                                className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800"
+                              >
+                                <Building2 className="h-2.5 w-2.5 mr-1" />
+                                {dept.code || dept.name.slice(0, 8)}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Tất cả</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">

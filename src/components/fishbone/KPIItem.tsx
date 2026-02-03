@@ -19,6 +19,12 @@ export interface KPI {
   targetGoal?: number;      // Mục tiêu 100%
   targetMax?: number;       // Điểm trần
   description?: string;
+  // Department assignments
+  departments?: Array<{
+    id: string;
+    name: string;
+    code: string | null;
+  }>;
 }
 
 interface KPIItemProps {

@@ -22,10 +22,10 @@ import {
   CheckCircle,
   Network,
   ExternalLink,
+  Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-
+import { DepartmentEditDialog } from './DepartmentEditDialog';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 interface Department {
@@ -53,12 +53,14 @@ function DepartmentNode({
   expandedIds,
   toggleExpand,
   onViewDetail,
+  onEdit,
 }: {
   dept: Department;
   level?: number;
   expandedIds: Set<string>;
   toggleExpand: (id: string) => void;
   onViewDetail: (id: string) => void;
+  onEdit: (dept: Department) => void;
 }) {
   const hasChildren = dept.children && dept.children.length > 0;
   const isExpanded = expandedIds.has(dept.id);
@@ -118,6 +120,20 @@ function DepartmentNode({
           <Users className="h-3 w-3 text-muted-foreground" />
         )}
 
+        {/* Edit Button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit(dept);
+          }}
+          title="Cấu hình phòng ban"
+        >
+          <Settings className="h-3.5 w-3.5" />
+        </Button>
+
         {/* View Detail Button */}
         <Button
           variant="ghost"
@@ -127,6 +143,7 @@ function DepartmentNode({
             e.stopPropagation();
             onViewDetail(dept.id);
           }}
+          title="Xem chi tiết"
         >
           <ExternalLink className="h-3.5 w-3.5" />
         </Button>
@@ -143,6 +160,7 @@ function DepartmentNode({
               expandedIds={expandedIds}
               toggleExpand={toggleExpand}
               onViewDetail={onViewDetail}
+              onEdit={onEdit}
             />
           ))}
         </div>
@@ -159,10 +177,20 @@ export function DepartmentsManager() {
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
+  
+  // Edit dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingDept, setEditingDept] = useState<Department | null>(null);
 
   // Navigate to department detail page
   const handleViewDetail = (id: string) => {
     router.push(`/departments/${id}`);
+  };
+
+  // Open edit dialog
+  const handleEdit = (dept: Department) => {
+    setEditingDept(dept);
+    setEditDialogOpen(true);
   };
 
   // Fetch departments
@@ -388,18 +416,35 @@ export function DepartmentsManager() {
           ) : (
             <div className="space-y-1">
               {departmentTree.map((dept) => (
-              <DepartmentNode
+                <DepartmentNode
                   key={dept.id}
                   dept={dept}
                   expandedIds={expandedIds}
                   toggleExpand={toggleExpand}
                   onViewDetail={handleViewDetail}
+                  onEdit={handleEdit}
                 />
               ))}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Dialog */}
+      <DepartmentEditDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        department={
+          editingDept
+            ? {
+                id: editingDept.id,
+                name: editingDept.name,
+                primaryPerspectiveId: null,
+              }
+            : null
+        }
+        onSaved={() => fetchDepartments()}
+      />
     </div>
   );
 }

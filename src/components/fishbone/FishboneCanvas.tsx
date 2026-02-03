@@ -412,6 +412,7 @@ export function FishboneCanvas() {
         objectiveWeight={currentObjective?.weight || 0}
         usedWeight={usedWeight}
         editingKpiWeight={(editingKpi as unknown as { weight?: number })?.weight || 0}
+        csfId={editingKpiCsfDbId || undefined}
       />
     </div>
   );

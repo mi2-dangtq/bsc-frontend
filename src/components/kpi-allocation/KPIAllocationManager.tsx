@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -56,17 +56,15 @@ export function KPIAllocationManager() {
   }, [perspectives]);
 
   // Transform API departments to allocation format
-  // Assign primary perspectives based on department type
+  // Use primaryPerspectiveId from database
   const departments: AllocationDepartment[] = useMemo(() => {
     return apiDepts
       .filter((d) => d.isActive && !d.parentId) // Root departments only
-      .slice(0, 10) // Limit for UI
-      .map((dept, index) => {
-        // Simulate primary perspective assignment
-        // In real app, this should come from DB
-        const primaryPerspectives = index % 3 === 0 
-          ? [1, 2] // Some departments have 2 primary perspectives
-          : [(index % 4) + 1]; // Most have 1
+      .map((dept) => {
+        // Use primaryPerspectiveId from database, default to first perspective if not set
+        const primaryPerspectives = dept.primaryPerspectiveId 
+          ? [dept.primaryPerspectiveId] 
+          : [1]; // Default to Financial if not set
         
         return {
           ...dept,
@@ -75,6 +73,7 @@ export function KPIAllocationManager() {
         };
       });
   }, [apiDepts]);
+
 
   // Compute initial weights from departments
   const initialWeights = useMemo(() => {

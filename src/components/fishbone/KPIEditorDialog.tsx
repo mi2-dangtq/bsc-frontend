@@ -32,9 +32,12 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Info, Building2 } from 'lucide-react';
 import type { KPI } from './KPIItem';
 import type { KPILibrary } from '@/lib/api';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 const kpiFormSchema = z.object({
   kpiLibId: z.number().min(1, 'Vui lòng chọn KPI từ thư viện'),
@@ -47,6 +50,12 @@ const kpiFormSchema = z.object({
 
 type KPIFormValues = z.infer<typeof kpiFormSchema>;
 
+interface CsfDepartment {
+  id: string;
+  name: string;
+  code: string | null;
+}
+
 export interface KPISaveData {
   kpiLibId: number;
   weight: number;
@@ -56,6 +65,7 @@ export interface KPISaveData {
     targetGoal: number;
     targetMax?: number;
   };
+  departmentIds?: string[]; // NEW: Selected departments
 }
 
 interface KPIEditorDialogProps {
@@ -69,6 +79,8 @@ interface KPIEditorDialogProps {
   objectiveWeight?: number;
   usedWeight?: number;
   editingKpiWeight?: number;
+  // NEW: CSF ID for department fetching
+  csfId?: number;
 }
 
 export function KPIEditorDialog({
@@ -81,8 +93,14 @@ export function KPIEditorDialog({
   objectiveWeight = 0,
   usedWeight = 0,
   editingKpiWeight = 0,
+  csfId,
 }: KPIEditorDialogProps) {
   const [selectedKpi, setSelectedKpi] = useState<KPILibrary | null>(null);
+  
+  // NEW: Department selection state
+  const [availableDepts, setAvailableDepts] = useState<CsfDepartment[]>([]);
+  const [selectedDeptIds, setSelectedDeptIds] = useState<Set<string>>(new Set());
+  const [inheritAll, setInheritAll] = useState(true);
   
   // Calculate remaining weight
   const remainingWeight = objectiveWeight - usedWeight + (mode === 'edit' ? editingKpiWeight : 0);
@@ -126,6 +144,28 @@ export function KPIEditorDialog({
     }
   }, [kpi, open, form, kpiLibrary, mode]);
 
+  // NEW: Fetch available departments from CSF when dialog opens
+  useEffect(() => {
+    if (!open || !csfId) {
+      setAvailableDepts([]);
+      return;
+    }
+
+    const fetchDepts = async () => {
+      try {
+        const res = await fetch(`${API_URL}/csf/${csfId}/departments`);
+        if (res.ok) {
+          const depts: CsfDepartment[] = await res.json();
+          setAvailableDepts(depts);
+        }
+      } catch (err) {
+        console.error('Error fetching CSF departments:', err);
+      }
+    };
+
+    fetchDepts();
+  }, [open, csfId]);
+
   const handleKpiSelect = (kpiLibId: string) => {
     const id = parseInt(kpiLibId);
     form.setValue('kpiLibId', id);
@@ -143,8 +183,20 @@ export function KPIEditorDialog({
         targetGoal: data.targetGoal,
         targetMax: data.targetMax,
       },
+      // NEW: Include selected departments
+      departmentIds: inheritAll ? undefined : Array.from(selectedDeptIds),
     });
     onOpenChange(false);
+  };
+
+  const handleDeptToggle = (deptId: string) => {
+    const newSet = new Set(selectedDeptIds);
+    if (newSet.has(deptId)) {
+      newSet.delete(deptId);
+    } else {
+      newSet.add(deptId);
+    }
+    setSelectedDeptIds(newSet);
   };
 
   const isPositive = selectedKpi?.trend === 'POSITIVE';
@@ -410,6 +462,59 @@ export function KPIEditorDialog({
                     )}
                   />
                 </div>
+              </div>
+            )}
+
+            {/* Department Assignment - Show when KPI selected and CSF has departments */}
+            {selectedKpi && availableDepts.length > 0 && (
+              <div className="space-y-3 pt-2 border-t">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                  Phòng ban phụ trách
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="inherit-all"
+                    checked={inheritAll}
+                    onCheckedChange={(checked) => {
+                      setInheritAll(checked as boolean);
+                      if (checked) {
+                        setSelectedDeptIds(new Set());
+                      }
+                    }}
+                  />
+                  <label htmlFor="inherit-all" className="text-sm">
+                    Áp dụng cho tất cả phòng ban của CSF
+                  </label>
+                </div>
+
+                {!inheritAll && (
+                  <div className="p-3 bg-muted rounded-lg space-y-2">
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Chọn phòng ban cụ thể cho KPI này:
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {availableDepts.map((dept) => (
+                        <div key={dept.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`dept-${dept.id}`}
+                            checked={selectedDeptIds.has(dept.id)}
+                            onCheckedChange={() => handleDeptToggle(dept.id)}
+                          />
+                          <label htmlFor={`dept-${dept.id}`} className="text-sm truncate">
+                            {dept.name}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                    {selectedDeptIds.size === 0 && (
+                      <p className="text-xs text-amber-500 mt-2">
+                        ⚠️ Chưa chọn phòng ban nào
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 

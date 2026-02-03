@@ -13,7 +13,14 @@ export interface Department {
   sortOrder: number;
   isActive: boolean;
   syncedAt: string;
+  primaryPerspectiveId: number | null;
+  perspective: {
+    id: number;
+    name: string;
+    color: string | null;
+  } | null;
 }
+
 
 export function useDepartments() {
   const [departments, setDepartments] = useState<Department[]>([]);

@@ -68,6 +68,7 @@ export function DepartmentAssignDialog({
       const res = await fetch(`${API_URL}/csf/${csfId}/departments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ departmentIds: Array.from(selectedIds) }),
       });
 

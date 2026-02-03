@@ -237,7 +237,7 @@ export function CSFDetailPanel({
                                           {missingDepts.map(d => d.name || d.code).join(', ')}
                                         </p>
                                         <p className="text-xs mt-2 text-muted-foreground">
-                                          Theo quy tắc TOPPION: CSF có nhiều phòng ban phải có ít nhất 1 KPI cho mỗi phòng ban
+                                          CSF có nhiều phòng ban phải có ít nhất 1 KPI cho mỗi phòng ban
                                         </p>
                                       </div>
                                     </TooltipContent>

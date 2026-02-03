@@ -305,7 +305,7 @@ export function DepartmentWeightEditor({
         {/* Info Box */}
         <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-4">
           <h5 className="font-medium text-blue-700 dark:text-blue-400 mb-2">
-            Quy tắc TOPPION
+            Quy tắc tỷ trọng BSC
           </h5>
           <ul className="text-sm text-blue-600 dark:text-blue-300 space-y-1">
             <li>✓ Phương diện chính ≥ 50%</li>

@@ -322,7 +322,7 @@ export function CSFAssignment({ departments }: CSFAssignmentProps) {
                         <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
                         <p className="text-sm text-amber-700 dark:text-amber-300">
                           <strong>Lưu ý:</strong> CSF này có {assignedDepts.length} phòng ban phụ trách. 
-                          Theo quy tắc TOPPION, mỗi phòng ban cần có ít nhất 1 KPI riêng để đo lường.
+                          Theo quy tắc, mỗi phòng ban cần có ít nhất 1 KPI riêng để đo lường.
                         </p>
                       </div>
                     )}

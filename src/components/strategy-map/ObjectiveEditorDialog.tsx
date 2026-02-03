@@ -35,7 +35,7 @@ import { Badge } from '@/components/ui/badge';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { strategicThemesAPI, type StrategicTheme } from '@/lib/api';
 
-// Các từ khóa hành động theo tài liệu TOPPION
+// Action keywords for objective naming validation
 const ACTION_KEYWORDS = [
   'Tăng',
   'Giảm',

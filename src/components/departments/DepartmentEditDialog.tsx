@@ -10,7 +10,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Select,
@@ -183,7 +182,7 @@ export function DepartmentEditDialog({
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  Phương diện chính phải có tỷ trọng ≥ 50% theo quy tắc TOPPION
+                  Phương diện chính phải có tỷ trọng ≥ 50%
                 </p>
               </div>
 

@@ -32,7 +32,7 @@ export interface ValidationWarning {
   severity: 'error' | 'warning';
 }
 
-// Validation rules from TOPPION documentation
+// Validation rules for department weight allocation
 const RULES = {
   TOTAL_WEIGHT: 100,
   PRIMARY_MIN_WEIGHT: 50, // Single primary perspective >= 50%
@@ -246,7 +246,7 @@ export function KPIAllocationManager() {
             Phân bổ KPI
           </h1>
           <p className="text-muted-foreground mt-1">
-            Gán tỷ trọng phương diện và KPI cho các phòng ban theo mô hình TOPPION
+            Gán tỷ trọng phương diện và KPI cho các phòng ban
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -305,7 +305,7 @@ export function KPIAllocationManager() {
                   ? 'Không thể lưu khi còn lỗi validation'
                   : warningCount > 0
                     ? 'Có thể lưu nhưng nên xem xét các cảnh báo'
-                    : 'Tất cả quy tắc TOPPION đều được tuân thủ'}
+                    : 'Tất cả quy tắc đều được tuân thủ'}
               </p>
             </div>
           </div>
@@ -350,7 +350,7 @@ export function KPIAllocationManager() {
         <CardHeader className="pb-3">
           <CardTitle className="text-sm flex items-center gap-2 text-blue-700 dark:text-blue-300">
             <Scale className="h-4 w-4" />
-            Quy tắc phân bổ tỷ trọng (TOPPION Model)
+            Quy tắc phân bổ tỷ trọng
           </CardTitle>
         </CardHeader>
         <CardContent>

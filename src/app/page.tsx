@@ -28,6 +28,7 @@ import {
   PerspectiveBarChart,
   OverallScoreGauge,
 } from '@/components/charts';
+import { DepartmentRankingWidget } from '@/components/dashboard/DepartmentRankingWidget';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -315,6 +316,28 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Department Ranking Widget */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <div className="w-1 h-5 bg-gradient-to-b from-yellow-500 to-amber-500 rounded-full" />
+          Xếp hạng Phòng Ban
+        </h3>
+        <div className="grid gap-6 md:grid-cols-2">
+          <DepartmentRankingWidget />
+          {/* Placeholder for Company vs Departments comparison */}
+          <Card className="border shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-lg">So sánh với Công ty</CardTitle>
+              <CardDescription>Coming soon</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground text-center py-12">
+                Widget so sánh điểm phòng ban với trung bình công ty sẽ được phát triển
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
     </div>
   );

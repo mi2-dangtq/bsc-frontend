@@ -1,0 +1,1 @@
+export { DepartmentRankingWidget } from './DepartmentRankingWidget';

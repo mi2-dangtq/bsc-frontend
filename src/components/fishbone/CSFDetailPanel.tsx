@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/table';
 import { 
   Plus, Edit, Trash2, Target, FileText, BarChart3, 
-  Building2, Sparkles, TrendingUp, Layers 
+  Building2, Sparkles, TrendingUp, Layers, AlertTriangle 
 } from 'lucide-react';
 import type { TreeNode } from './CSFTreeNavigator';
 import type { CSF } from './CSFCard';
@@ -204,7 +204,50 @@ export function CSFDetailPanel({
                         {index + 1}
                       </div>
                       <div>
-                        <CardTitle className="text-base">{csf.name}</CardTitle>
+                        <div className="flex items-center gap-2">
+                          <CardTitle className="text-base">{csf.name}</CardTitle>
+                          {/* Rule 4 Warning: CSF có nhiều phòng ban nhưng thiếu KPI cho một số phòng ban */}
+                          {(() => {
+                            const csfDeptIds = new Set(csf.departments?.map(d => d.id) || []);
+                            const kpiDeptIds = new Set<string>();
+                            csf.kpis.forEach(kpi => {
+                              const kpiDepts = (kpi as unknown as { departments?: Array<{ id: string }> }).departments;
+                              if (!kpiDepts || kpiDepts.length === 0) {
+                                // KPI không có departments cụ thể = cover tất cả
+                                csfDeptIds.forEach(id => kpiDeptIds.add(id));
+                              } else {
+                                kpiDepts.forEach(d => kpiDeptIds.add(d.id));
+                              }
+                            });
+                            const missingDepts = csf.departments?.filter(d => !kpiDeptIds.has(d.id)) || [];
+                            
+                            if (csfDeptIds.size > 1 && missingDepts.length > 0) {
+                              return (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="text-amber-500">
+                                        <AlertTriangle className="h-4 w-4" />
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                      <div className="text-sm">
+                                        <p className="font-medium mb-1">⚠️ Thiếu KPI cho phòng ban:</p>
+                                        <p className="text-muted-foreground">
+                                          {missingDepts.map(d => d.name || d.code).join(', ')}
+                                        </p>
+                                        <p className="text-xs mt-2 text-muted-foreground">
+                                          Theo quy tắc TOPPION: CSF có nhiều phòng ban phải có ít nhất 1 KPI cho mỗi phòng ban
+                                        </p>
+                                      </div>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </div>
                         {csf.departments && csf.departments.length > 0 && (
                           <div className="flex gap-1 mt-1.5">
                             {csf.departments.map(dept => (

@@ -289,6 +289,16 @@ export const kpiAllocationAPI = {
     }),
   delete: (id: number) =>
     fetchAPI<void>(`/kpi/allocations/${id}`, { method: 'DELETE' }),
+  // KPI Department assignments
+  getDepartments: (allocationId: number) =>
+    fetchAPI<{ id: string; name: string; code: string | null }[]>(
+      `/kpi/allocations/${allocationId}/departments`
+    ),
+  setDepartments: (allocationId: number, departmentIds: string[]) =>
+    fetchAPI<{ success: boolean }>(`/kpi/allocations/${allocationId}/departments`, {
+      method: 'PUT',
+      body: JSON.stringify({ departmentIds }),
+    }),
 };
 
 // ===== KPI Measurement =====
@@ -423,3 +433,24 @@ export const weightingAPI = {
   },
 };
 
+// ===== Department Validation APIs =====
+export interface CsfAllocationValidation {
+  isValid: boolean;
+  csfs: {
+    csfId: number;
+    csfContent: string;
+    departmentCount: number;
+    departments: {
+      departmentId: string;
+      departmentName: string;
+      hasKpi: boolean;
+    }[];
+    isValid: boolean;
+  }[];
+  errors: string[];
+}
+
+export const departmentValidationAPI = {
+  getCsfAllocation: () =>
+    fetchAPI<CsfAllocationValidation>('/departments/weighting/csf-allocation'),
+};

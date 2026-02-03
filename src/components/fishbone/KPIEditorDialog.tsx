@@ -129,6 +129,16 @@ export function KPIEditorDialog({
         targetMax: kpi.targetMax,
       });
       setSelectedKpi(kpiLibrary.find(k => k.id === libId) || null);
+      
+      // Load existing departments
+      const kpiDepts = (kpi as unknown as { departments?: Array<{ id: string }> }).departments;
+      if (kpiDepts && kpiDepts.length > 0) {
+        setInheritAll(false);
+        setSelectedDeptIds(new Set(kpiDepts.map(d => d.id)));
+      } else {
+        setInheritAll(true);
+        setSelectedDeptIds(new Set());
+      }
     } else if (!kpi && open) {
       form.reset({
         kpiLibId: 0,
@@ -139,8 +149,10 @@ export function KPIEditorDialog({
         targetMax: undefined,
       });
       setSelectedKpi(null);
+      setInheritAll(true);
+      setSelectedDeptIds(new Set());
     }
-  }, [kpi, open, form, kpiLibrary, mode]);
+  }, [kpi, open, form, kpiLibrary, mode, remainingWeight]);
 
   // NEW: Fetch available departments from CSF when dialog opens
   useEffect(() => {

@@ -12,7 +12,7 @@ import { CSFTreeNavigator, type TreeNode } from './CSFTreeNavigator';
 import { CSFDetailPanel } from './CSFDetailPanel';
 import type { KPI } from './KPIItem';
 import type { CSF } from './CSFCard';
-import { objectivesAPI, type Objective as APIObjective } from '@/lib/api';
+import { objectivesAPI, kpiAllocationAPI, type Objective as APIObjective } from '@/lib/api';
 import { useFishboneAPI, getAllocationIdFromKpiId } from '@/hooks/useFishboneAPI';
 import { useDepartment, usePerspectives } from '@/contexts';
 import { DepartmentSelector } from '@/components/shared/DepartmentSelector';
@@ -121,6 +121,7 @@ export function FishboneCanvas() {
         targetGoal: kpi.targetGoal,
         targetMax: kpi.targetMax,
         description: kpi.description,
+        departments: kpi.departments,
       })),
       departments: csf.departments?.map(d => ({
         id: d.id,
@@ -220,7 +221,12 @@ export function FishboneCanvas() {
     }
   };
 
-  const handleSaveKpi = async (data: { kpiLibId: number; weight: number; targets: { targetMin?: number; targetThreshold?: number; targetGoal: number; targetMax?: number } }) => {
+  const handleSaveKpi = async (data: { 
+    kpiLibId: number; 
+    weight: number; 
+    targets: { targetMin?: number; targetThreshold?: number; targetGoal: number; targetMax?: number };
+    departmentIds?: string[];
+  }) => {
     if (!editingKpiCsfDbId || !currentObjective) return;
 
     if (editingKpi && editingKpi.dbId) {
@@ -233,29 +239,19 @@ export function FishboneCanvas() {
       });
 
       if (success) {
-        const kpiLib = api.kpiLibrary.find(k => k.id === data.kpiLibId);
-        setCsfs(csfs.map(csf => {
-          if (csf.id === editingKpiCsfId) {
-            return {
-              ...csf,
-              kpis: csf.kpis.map(k => 
-                k.id === editingKpi.id 
-                  ? { 
-                      ...k, 
-                      weight: data.weight,
-                      target: data.targets.targetGoal,
-                      targetMin: data.targets.targetMin,
-                      targetThreshold: data.targets.targetThreshold,
-                      targetGoal: data.targets.targetGoal,
-                      targetMax: data.targets.targetMax,
-                      name: kpiLib?.name || k.name 
-                    }
-                  : k
-              ),
-            };
+        // Save departments if provided (not inheriting all)
+        if (data.departmentIds !== undefined) {
+          try {
+            await kpiAllocationAPI.setDepartments(editingKpi.dbId, data.departmentIds);
+          } catch (err) {
+            console.error('Error saving KPI departments:', err);
           }
-          return csf;
-        }));
+        }
+
+        // Refetch to get updated data including departments
+        if (currentObjective.dbId) {
+          await loadCsfs(currentObjective.dbId);
+        }
       }
     } else {
       const newKpi = await api.addKpiToCSF(
@@ -267,12 +263,19 @@ export function FishboneCanvas() {
       );
 
       if (newKpi) {
-        setCsfs(csfs.map(csf => {
-          if (csf.id === editingKpiCsfId) {
-            return { ...csf, kpis: [...csf.kpis, { ...newKpi, csfId: csf.id }] };
+        // Save departments for new KPI if provided
+        if (data.departmentIds !== undefined && newKpi.dbId) {
+          try {
+            await kpiAllocationAPI.setDepartments(newKpi.dbId, data.departmentIds);
+          } catch (err) {
+            console.error('Error saving KPI departments:', err);
           }
-          return csf;
-        }));
+        }
+
+        // Refetch to get updated data including departments
+        if (currentObjective.dbId) {
+          await loadCsfs(currentObjective.dbId);
+        }
       }
     }
 
